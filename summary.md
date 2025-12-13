@@ -5,6 +5,7 @@
 
 ### Tasks Completed:
 1. ✅ Created [app/chat_service.py](app/chat_service.py) - Router pattern implementation
+2. ✅ Added category list pre-check for "איזה קטגוריות" queries
 
 ### Implementation:
 - **classify_intent**: Router using gpt-4o-mini (bias towards SEARCH)
@@ -13,6 +14,7 @@
 - Console logging: `[Router]` and `[Rewriter]` output
 - CHAT path: No database, direct LLM response
 - SEARCH path: Rewriter + get_menu_items tool + final answer
+- **Category query pre-check**: Detects "איזה קטגוריות יש לכם" and returns category list instead of dishes
 
 ---
 

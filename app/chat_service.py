@@ -16,6 +16,7 @@ from app.ai_core import (
     prepare_user_message_with_instructions
 )
 from app.session_manager import SessionManager
+from app.utils import is_general_menu_query, get_category_list_message
 
 load_dotenv()
 
@@ -128,6 +129,13 @@ class ChatService:
             self.session_manager.clear_session(user_id)
 
         try:
+            # Check for general menu/category query first
+            if is_general_menu_query(user_message):
+                response = get_category_list_message()
+                self.session_manager.add_message(user_id, "user", user_message)
+                self.session_manager.add_message(user_id, "assistant", response)
+                return response
+
             # Get conversation history
             history = self.session_manager.get_history(user_id)
 
