@@ -9,6 +9,7 @@
 3. ✅ Hidden dish counter (internal tracking only, not shown to users)
 4. ✅ Enhanced `is_general_menu_query()` detection - added "קטגוריות" and "יש לכם" patterns
 5. ✅ Added debug logging for dish exclusion tracking
+6. ✅ Updated instructions.txt - removed bullet points (•) and dietary flags (🌱, ללא גלוטן) from response format
 
 ### Implementation:
 - **classify_intent**: Router using gpt-4o-mini (bias towards SEARCH)
