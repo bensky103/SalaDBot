@@ -102,62 +102,66 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
 
             # Check if there are tool calls
             if assistant_message.tool_calls:
-                messages.append(assistant_message)
-
-                for tool_call in assistant_message.tool_calls:
-                    function_name = tool_call.function.name
-                    function_args = json.loads(tool_call.function.arguments)
-
-                    if function_name == "get_business_info":
-                        function_response = get_business_info_message()
-                        print(f"[Tool]: get_business_info called")
+                # Check if it's a static response tool (bypass second LLM call)
+                first_tool = assistant_message.tool_calls[0]
+                function_name = first_tool.function.name
+                
+                if function_name == "get_business_info":
+                    print(f"[Tool]: get_business_info called - returning directly")
+                    final_content = get_business_info_message()
+                
+                elif function_name == "get_order_info":
+                    print(f"[Tool]: get_order_info called - returning directly")
+                    final_content = get_order_redirect_message()
+                
+                elif function_name == "get_category_list":
+                    print(f"[Tool]: get_category_list called - returning directly")
+                    final_content = get_category_list_message()
+                
+                elif function_name == "get_menu_items":
+                    # Menu query - need to process with LLM
+                    messages.append(assistant_message)
                     
-                    elif function_name == "get_order_info":
-                        function_response = get_order_redirect_message()
-                        print(f"[Tool]: get_order_info called")
+                    function_args = json.loads(first_tool.function.arguments)
+                    exclude_ids = list(self.session_manager.get_shown_dishes(user_id))
+                    print(f"[Exclusion]: Excluding {len(exclude_ids)} previously shown dishes: {exclude_ids[:10]}...")
                     
-                    elif function_name == "get_category_list":
-                        function_response = get_category_list_message()
-                        print(f"[Tool]: get_category_list called")
+                    items = get_menu_items_implementation(
+                        category=function_args.get("category"),
+                        max_price=function_args.get("max_price"),
+                        dietary_restriction=function_args.get("dietary_restriction"),
+                        search_term=function_args.get("search_term"),
+                        exclude_ids=exclude_ids if exclude_ids else None,
+                        availability_day=function_args.get("availability_day")
+                    )
+
+                    if items:
+                        dish_ids = [item["id"] for item in items]
+                        self.session_manager.add_shown_dishes(user_id, dish_ids)
+                        print(f"[Tracking]: Added {len(dish_ids)} new dishes. Total shown: {len(self.session_manager.get_shown_dishes(user_id))}")
+
+                    function_response = format_menu_items_for_ai(items)
                     
-                    elif function_name == "get_menu_items":
-                        exclude_ids = list(self.session_manager.get_shown_dishes(user_id))
-                        print(f"[Exclusion]: Excluding {len(exclude_ids)} previously shown dishes: {exclude_ids[:10]}...")
-                        
-                        items = get_menu_items_implementation(
-                            category=function_args.get("category"),
-                            max_price=function_args.get("max_price"),
-                            dietary_restriction=function_args.get("dietary_restriction"),
-                            search_term=function_args.get("search_term"),
-                            exclude_ids=exclude_ids if exclude_ids else None,
-                            availability_day=function_args.get("availability_day")
-                        )
-
-                        if items:
-                            dish_ids = [item["id"] for item in items]
-                            self.session_manager.add_shown_dishes(user_id, dish_ids)
-                            print(f"[Tracking]: Added {len(dish_ids)} new dishes. Total shown: {len(self.session_manager.get_shown_dishes(user_id))}")
-
-                        function_response = format_menu_items_for_ai(items)
-                    
-                    else:
-                        function_response = f"Unknown tool: {function_name}"
-
                     messages.append({
                         "role": "tool",
-                        "tool_call_id": tool_call.id,
+                        "tool_call_id": first_tool.id,
                         "name": function_name,
                         "content": function_response
                     })
 
-                # Get final response
-                second_response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=0.7
-                )
+                    # Get final response from LLM
+                    second_response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=messages,
+                        temperature=0.7
+                    )
 
-                final_content = second_response.choices[0].message.content
+                    final_content = second_response.choices[0].message.content
+                
+                else:
+                    # Unknown tool
+                    print(f"[Warning]: Unknown tool called: {function_name}")
+                    final_content = "מצטערים, אירעה שגיאה. אנא נסה שוב."
             else:
                 final_content = assistant_message.content
 
