@@ -36,16 +36,16 @@ class ChatService:
         self,
         user_input: str,
         history: List[Dict[str, str]]
-    ) -> Literal["GREETING", "SEARCH", "CHAT", "CATEGORY"]:
+    ) -> Literal["GREETING", "CATEGORY", "SEARCH"]:
         """
-        Router: Classify if user is greeting, needs database search, category list, or general chat
+        Router: Classify user intent - greeting, category list request, or menu search
 
         Args:
             user_input: User's message
             history: Conversation history
 
         Returns:
-            "GREETING", "SEARCH", "CHAT", or "CATEGORY"
+            "GREETING", "CATEGORY", or "SEARCH" (default fallback)
         """
         system_prompt = """You are a Traffic Controller. Analyze the user's message.
 - **Output `GREETING` if (HIGHEST PRIORITY):**
@@ -56,15 +56,12 @@ class ChatService:
   1. User asks "what categories do you have" or "what types of dishes" (Hebrew: "איזה קטגוריות", "איזה מנות יש לכם", "מה יש לכם").
   2. User wants to see the FULL menu overview or category list.
   3. User is asking about the range/variety of dishes WITHOUT specifying a specific category.
-- **Output `SEARCH` if:**
-  1. The user mentions a SPECIFIC food, ingredient, price, availability, or category name.
-  2. The input is ambiguous, slang, or vague (e.g., 'I want that thing').
-  3. The input is a mix of greeting + food (e.g., 'Hi, do you have hummus?').
-  4. You are in doubt between SEARCH and CHAT. **BIAS TOWARDS SEARCH.**
-- **Output `CHAT` if (and ONLY if):**
-  1. The input is a farewell, 'thank you', or a complaint (NOT a greeting).
-  2. The input is a question about store hours or location (which you know from context).
-- **Output Format:** Return ONLY the single word: `GREETING`, `CATEGORY`, `SEARCH`, or `CHAT`."""
+- **Output `SEARCH` (DEFAULT):**
+  1. Everything else - any food query, ingredient, price, availability, or category name.
+  2. Ambiguous, slang, or vague input.
+  3. Greeting + question (e.g., 'Hi, do you have hummus?').
+  4. Farewells, thank you messages, complaints, or general questions.
+- **Output Format:** Return ONLY the single word: `GREETING`, `CATEGORY`, or `SEARCH`."""
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history[-4:] if len(history) > 4 else history)
@@ -83,10 +80,9 @@ class ChatService:
             return "GREETING"
         elif result == "CATEGORY":
             return "CATEGORY"
-        elif result == "SEARCH":
-            return "SEARCH"
         else:
-            return "CHAT"
+            # Default to SEARCH for everything else
+            return "SEARCH"
 
     async def process_user_message(
         self,
@@ -125,22 +121,6 @@ class ChatService:
                 # User wants category list
                 response = get_category_list_message()
                 final_content = response
-            elif intent == "CHAT":
-                # General conversation - no database
-                # General conversation - no database, no rewriter
-                system_msg = "You are a helpful assistant for a Deli. Answer politely. Do not make up menu items."
-                messages = [{"role": "system", "content": system_msg}]
-                messages.extend(history[-8:] if len(history) > 8 else history)
-                messages.append({"role": "user", "content": user_message})
-
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=0.7
-                )
-
-                final_content = response.choices[0].message.content
-
             else:  # intent == "SEARCH"
                 # Prepare message with instructions (using original message for context preservation)
                 prepared_message = prepare_user_message_with_instructions(user_message)
