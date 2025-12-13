@@ -1,6 +1,6 @@
 """
 Chat Service Module - Router Pattern Implementation
-Implements 3-step pipeline: Router -> Rewriter -> Main Flow
+Implements 2-step pipeline: Router -> Main Flow (with context awareness)
 """
 
 import os
@@ -24,6 +24,7 @@ load_dotenv()
 class ChatService:
     """
     Router-pattern chat service for SaladBot
+    Uses 2-step pipeline: Router (intent classification) -> Main LLM (with full context preservation)
     """
 
     def __init__(self, model: str = "gpt-4o-mini"):
@@ -81,42 +82,6 @@ class ChatService:
         else:
             return "CHAT"
 
-    async def rewrite_user_query(
-        self,
-        user_input: str,
-        history: List[Dict[str, str]]
-    ) -> str:
-        """
-        Rewriter: Convert user message into standalone Hebrew search query
-
-        Args:
-            user_input: User's original message
-            history: Conversation history
-
-        Returns:
-            Rewritten standalone query
-        """
-        system_prompt = """Rewrite the user's last message into a clear, standalone Hebrew question based on the chat history.
-- Resolve pronouns (e.g., replace 'it' with the item name from previous turns).
-- Keep all filters (vegan, price, etc.).
-- If the user changes the topic, ignore the old history.
-- Output ONLY the rewritten sentence."""
-
-        messages = [{"role": "system", "content": system_prompt}]
-        messages.extend(history[-6:] if len(history) > 6 else history)
-        messages.append({"role": "user", "content": user_input})
-
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=0.0,
-            max_tokens=150
-        )
-
-        rewritten = response.choices[0].message.content.strip()
-        print(f"[Rewriter]: {user_input} -> {rewritten}")
-        return rewritten
-
     async def process_user_message(
         self,
         user_message: str,
@@ -124,7 +89,7 @@ class ChatService:
         reset_history: bool = False
     ) -> str:
         """
-        Main flow: Router -> Rewriter -> Database/LLM
+        Main flow: Router -> Main LLM (with full context)
 
         Args:
             user_message: User's message text
@@ -165,11 +130,8 @@ class ChatService:
                 final_content = response.choices[0].message.content
 
             else:  # intent == "SEARCH"
-                # Step 3: Rewriter
-                rewritten_query = await self.rewrite_user_query(user_message, history)
-
-                # Prepare message with instructions
-                prepared_message = prepare_user_message_with_instructions(rewritten_query)
+                # Prepare message with instructions (using original message for context preservation)
+                prepared_message = prepare_user_message_with_instructions(user_message)
 
                 # Build messages for LLM
                 from datetime import datetime

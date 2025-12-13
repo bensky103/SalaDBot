@@ -1,7 +1,49 @@
 # SaladBot POC - Progress Summary
 
-## Session [Current]: AI-Only Architecture - Removed Hard-Coded Pattern Matching
-**Date**: 2025-12-13
+## Session [Current]: Simplified 2-Step Architecture - Removed Rewriter for Context Preservation
+**Date**: 2025-12-13 (Latest Update)
+
+### Tasks Completed:
+1. ✅ **Removed Rewriter** - Eliminated `rewrite_user_query()` function (36 lines)
+2. ✅ **Simplified Pipeline** - Changed from 3-step to 2-step: Router → Main LLM (with full context)
+3. ✅ **Fixed Context Loss** - Original user message now passed directly to LLM with full history
+4. ✅ **Enhanced instructions.txt** - Added explicit context awareness and pronoun resolution guidance
+5. ✅ **Updated docstrings** - Reflected 2-step pipeline in all documentation
+6. ✅ **Tests passing** - All test suites confirm no regression
+
+### Architecture Change:
+**Before (3-step with context loss):**
+```
+User Message → Router → Rewriter (creates standalone query) → Main LLM
+                           ↓
+                   Context Lost Here!
+```
+
+**After (2-step with context preservation):**
+```
+User Message → Router → Main LLM (original message + full history)
+                           ↓
+                   Full Context Preserved!
+```
+
+### Benefits:
+✅ **No context loss** - LLM sees natural conversation with full history
+✅ **Faster** - One less API call (2 instead of 3)
+✅ **Cheaper** - ~33% reduction in API calls
+✅ **More natural** - LLM handles context resolution natively (it's already excellent at this)
+✅ **Simpler** - Less code to maintain
+
+### Technical Details:
+- Removed `rewrite_user_query()` from `chat_service.py`
+- SEARCH flow now passes `user_message` directly instead of rewritten query
+- LLM receives original message with full conversation history intact
+- Context resolution happens naturally within the main LLM call
+- Instructions updated to emphasize context awareness and pronoun resolution
+
+---
+
+## Session: AI-Only Architecture - Removed Hard-Coded Pattern Matching
+**Date**: 2025-12-13 (Earlier)
 
 ### Tasks Completed:
 1. ✅ **Deleted `app/agent.py`** - Completely removed deprecated legacy agent (371 lines)
