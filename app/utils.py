@@ -384,11 +384,11 @@ def is_general_menu_query(message: str) -> bool:
     general_patterns = [
         "מה יש לכם", "מה יש בתפריט", "מה אפשר להזמין",
         "תפריט", "רשימה של", "מה אתם מציעים",
-        "איזה קטגוריות", "קטגוריות יש", "איזה מנות",
-        "מה המנות", "יש מנות", "מה הקטגוריות"
+        "איזה קטגוריות", "קטגוריות יש", "קטגוריות", "איזה מנות",
+        "מה המנות", "יש מנות", "מה הקטגוריות", "יש לכם"
     ]
 
-    # Check for matches
+    # Check for matches (check in cleaned message for better detection)
     for pattern in general_patterns:
         if pattern in message_clean:
             return True

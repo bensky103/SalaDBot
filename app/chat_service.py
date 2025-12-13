@@ -204,6 +204,8 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
 
                         if function_name == "get_menu_items":
                             exclude_ids = list(self.session_manager.get_shown_dishes(user_id))
+                            print(f"[Exclusion]: Excluding {len(exclude_ids)} previously shown dishes: {exclude_ids[:10]}...")
+                            
                             items = get_menu_items_implementation(
                                 category=function_args.get("category"),
                                 max_price=function_args.get("max_price"),
@@ -216,6 +218,7 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                             if items:
                                 dish_ids = [item["id"] for item in items]
                                 self.session_manager.add_shown_dishes(user_id, dish_ids)
+                                print(f"[Tracking]: Added {len(dish_ids)} new dishes. Total shown: {len(self.session_manager.get_shown_dishes(user_id))}")
 
                             function_response = format_menu_items_for_ai(items)
                         else:
