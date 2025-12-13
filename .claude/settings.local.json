@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/test_instructions.py:*)",
+      "Bash(python scripts/test_ai_core.py:*)",
+      "Bash(findstr:*)",
+      "Bash(python scripts/test_agent.py:*)",
+      "Bash(python app/config.py:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout /t 3)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(del railway.json)",
+      "Bash(del \"c:\\Users\\Guy Bensky\\Desktop\\SalaDBot\\app\\agent_v2.py\")",
+      "Bash(del test_category.py test_category_output.txt test_agent_category.py test_greeting_fix.py test_greeting_fix_output.txt)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

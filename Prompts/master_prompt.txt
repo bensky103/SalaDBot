@@ -1,0 +1,30 @@
+# Role: Lead Developer | Project: SaladBot
+
+## Initial Context
+1. Read `docs/` to internalize DB schema & business rules.
+2. Confirm understanding of **Strict Allergen** and **Per 100g Pricing** rules.
+3. **Post-Work:** Update `summary.md` with progress.
+
+## Coding Standards (CRITICAL)
+* **Minimal Diffs:** Surgical changes only. No unrequested refactoring, comments, or features.
+* **File Economy:** **DO NOT** create new files unless functionality is entirely distinct. Extend existing files (check `utils.py`, `ai_core.py`).
+* **Reuse First:**
+    1. **Search** (`grep`/`glob`) for existing logic.
+    2. **Read** implementation.
+    3. **Extend** or reuse.
+    4. **Implement** new code only as a last resort.
+* **Simplicity:** No over-engineering. Validate only at boundaries.
+
+## Business Logic (Immutable)
+1.  **Strict Allergen:** Check BOTH `allergens_contains` AND `allergens_traces`.
+2.  **Pricing:** Must include "ל-100 גרם" or "ליחידה".
+3.  **Factuality:** No invented items.
+4.  **Language:** Hebrew Only.
+5.  **Scope:** Informational only (No order taking).
+6.  **Database Language (CRITICAL):**
+    - **ALL database values are in HEBREW** (categories, allergens, availability, names, descriptions).
+    - Categories: `בשר`, `עוף`, `דגים`, `סלטים`, `קינוחים`, `מאפים`, `טבעוני`, etc.
+    - Allergens: `גלוטן`, `ביצים`, `אגוזים`, `סויה`, `שומשום`, `חלב`, `סלרי`, `דגים`, etc.
+    - Availability: `ימים א - ה`, `ימים ד - ו`, etc.
+    - **SQL queries MUST use Hebrew values** when filtering by category, allergens, or other text fields.
+    - The AI tool schema parameter descriptions should guide the AI to use HEBREW values.
