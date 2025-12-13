@@ -36,7 +36,46 @@ def _load_instructions() -> str:
 # Cache the instructions at module load time
 SYSTEM_INSTRUCTIONS = _load_instructions()
 
-# OpenAI Tool Schema Definition
+# OpenAI Tool Schema Definitions
+GET_BUSINESS_INFO_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "get_business_info",
+        "description": "Get the standard business welcome message with hours, services, and links. Use this for greetings like 'היי', 'שלום', 'מה קורה', 'בוקר טוב'.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    }
+}
+
+GET_ORDER_INFO_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "get_order_info",
+        "description": "Get information about how to order. Use when user wants to order/purchase: 'אני רוצה להזמין', 'איך מזמינים', 'לקנות'.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    }
+}
+
+GET_CATEGORY_LIST_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "get_category_list",
+        "description": "Get the complete list of available menu categories. Use when user asks 'מה יש לכם', 'איזה קטגוריות', 'what do you have'.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    }
+}
+
 GET_MENU_ITEMS_TOOL = {
     "type": "function",
     "function": {

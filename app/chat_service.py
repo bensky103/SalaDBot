@@ -11,12 +11,19 @@ from dotenv import load_dotenv
 
 from app.ai_core import (
     GET_MENU_ITEMS_TOOL,
+    GET_BUSINESS_INFO_TOOL,
+    GET_ORDER_INFO_TOOL,
+    GET_CATEGORY_LIST_TOOL,
     get_menu_items_implementation,
     format_menu_items_for_ai,
     prepare_user_message_with_instructions
 )
 from app.session_manager import SessionManager
-from app.utils import get_category_list_message
+from app.utils import (
+    get_business_info_message,
+    get_order_redirect_message,
+    get_category_list_message
+)
 
 load_dotenv()
 
@@ -77,11 +84,16 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
             messages.extend(history[-8:] if len(history) > 8 else history)
             messages.append({"role": "user", "content": prepared_message})
 
-            # Call OpenAI with tool
+            # Call OpenAI with all available tools
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                tools=[GET_MENU_ITEMS_TOOL],
+                tools=[
+                    GET_BUSINESS_INFO_TOOL,
+                    GET_ORDER_INFO_TOOL,
+                    GET_CATEGORY_LIST_TOOL,
+                    GET_MENU_ITEMS_TOOL
+                ],
                 tool_choice="auto",
                 temperature=0.7
             )
@@ -96,7 +108,19 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                     function_name = tool_call.function.name
                     function_args = json.loads(tool_call.function.arguments)
 
-                    if function_name == "get_menu_items":
+                    if function_name == "get_business_info":
+                        function_response = get_business_info_message()
+                        print(f"[Tool]: get_business_info called")
+                    
+                    elif function_name == "get_order_info":
+                        function_response = get_order_redirect_message()
+                        print(f"[Tool]: get_order_info called")
+                    
+                    elif function_name == "get_category_list":
+                        function_response = get_category_list_message()
+                        print(f"[Tool]: get_category_list called")
+                    
+                    elif function_name == "get_menu_items":
                         exclude_ids = list(self.session_manager.get_shown_dishes(user_id))
                         print(f"[Exclusion]: Excluding {len(exclude_ids)} previously shown dishes: {exclude_ids[:10]}...")
                         
@@ -115,6 +139,7 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                             print(f"[Tracking]: Added {len(dish_ids)} new dishes. Total shown: {len(self.session_manager.get_shown_dishes(user_id))}")
 
                         function_response = format_menu_items_for_ai(items)
+                    
                     else:
                         function_response = f"Unknown tool: {function_name}"
 
