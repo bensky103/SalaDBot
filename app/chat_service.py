@@ -47,24 +47,20 @@ class ChatService:
         Returns:
             "GREETING", "ORDER", "CATEGORY", or "SEARCH" (default fallback)
         """
-        system_prompt = """You are a Traffic Controller. Analyze the user's message.
-- **Output `GREETING` if (HIGHEST PRIORITY):**
-  1. The input is EXCLUSIVELY a simple greeting without any other content (Hebrew: "היי", "שלום", "הי", "מה קורה", "בוקר טוב", "ערב טוב", "הלו", English: "hi", "hello", "hey").
-  2. First message in conversation that is just a greeting.
-  3. DO NOT output GREETING if greeting + question/request (e.g., "היי, יש לכם חומוס?").
-- **Output `ORDER` if:**
-  1. User wants to place an order, make a purchase, or buy something (Hebrew: "אני רוצה להזמין", "לקנות", "לרכוש", "איך מזמינים", "אפשר להזמין", English: "I want to order", "can I order", "how to order").
-  2. User asks about delivery, payment, or ordering process.
-- **Output `CATEGORY` if:**
-  1. User asks "what categories do you have" or "what types of dishes" (Hebrew: "איזה קטגוריות", "איזה מנות יש לכם", "מה יש לכם").
-  2. User wants to see the FULL menu overview or category list.
-  3. User is asking about the range/variety of dishes WITHOUT specifying a specific category.
-- **Output `SEARCH` (DEFAULT):**
-  1. Everything else - any food query, ingredient, price, availability, or category name.
-  2. Ambiguous, slang, or vague input.
-  3. Greeting + question (e.g., 'Hi, do you have hummus?').
-  4. Farewells, thank you messages, complaints, or general questions.
-- **Output Format:** Return ONLY the single word: `GREETING`, `ORDER`, `CATEGORY`, or `SEARCH`."""
+        # Load router instructions from file
+        import os
+        router_instructions_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "router_instructions.txt")
+        try:
+            with open(router_instructions_path, "r", encoding="utf-8") as f:
+                system_prompt = f.read()
+        except FileNotFoundError:
+            # Fallback if file not found
+            system_prompt = """You are a Traffic Controller - NOT a conversational bot. Classify ONLY.
+- Output `GREETING` for: Pure greetings, casual openers like "היי מה קורה", "מה נשמע", "hi", "hello", "what's up".
+- Output `ORDER` for: Order/purchase/delivery inquiries.
+- Output `CATEGORY` for: Category list or full menu overview requests.
+- Output `SEARCH` for: Everything else (food queries, greeting+question, farewells, etc.).
+Output ONLY one word: GREETING, ORDER, CATEGORY, or SEARCH."""
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history[-4:] if len(history) > 4 else history)
