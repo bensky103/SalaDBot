@@ -250,6 +250,23 @@ def is_valid_whatsapp_id(wa_id: str) -> bool:
 # Note: Hard-coded pattern matching removed - router (ChatService.classify_intent) handles intent classification
 
 
+def get_order_redirect_message() -> str:
+    """
+    Get the order redirect message with warm tone
+
+    Returns:
+        Hebrew order redirect message
+    """
+    return """אשמח לעזור! 😊
+
+אני בוט מידע שכאן כדי לעזור לך למצוא מנות ולענות על שאלות לגבי התפריט שלנו.
+
+כדי להזמין, אשמח להפנות אותך לאתר ההזמנות שלנו:
+🌐 https://order.picnicmaadanim.co.il
+
+יש לך שאלות נוספות לגבי המנות שלנו? אני כאן לעזור! 😊"""
+
+
 def get_business_info_message() -> str:
     """
     Get the standard business information message
@@ -272,6 +289,8 @@ def get_business_info_message() -> str:
 א-ד: 8:00-19:00 | ה: 8:00-20:00 | ו: 6:30-15:00
 
 איך אני יכול לעזור לך היום? אפשר לשאול על מנות ספציפיות, קטגוריות, או כל שאלה אחרת!
+
+לאתר: https://picnicmaadanim.co.il/
 
 להזמנה: https://order.picnicmaadanim.co.il"""
 

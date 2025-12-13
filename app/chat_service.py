@@ -36,22 +36,25 @@ class ChatService:
         self,
         user_input: str,
         history: List[Dict[str, str]]
-    ) -> Literal["GREETING", "CATEGORY", "SEARCH"]:
+    ) -> Literal["GREETING", "ORDER", "CATEGORY", "SEARCH"]:
         """
-        Router: Classify user intent - greeting, category list request, or menu search
+        Router: Classify user intent - greeting, order request, category list, or menu search
 
         Args:
             user_input: User's message
             history: Conversation history
 
         Returns:
-            "GREETING", "CATEGORY", or "SEARCH" (default fallback)
+            "GREETING", "ORDER", "CATEGORY", or "SEARCH" (default fallback)
         """
         system_prompt = """You are a Traffic Controller. Analyze the user's message.
 - **Output `GREETING` if (HIGHEST PRIORITY):**
   1. The input is EXCLUSIVELY a simple greeting without any other content (Hebrew: "היי", "שלום", "הי", "מה קורה", "בוקר טוב", "ערב טוב", "הלו", English: "hi", "hello", "hey").
   2. First message in conversation that is just a greeting.
   3. DO NOT output GREETING if greeting + question/request (e.g., "היי, יש לכם חומוס?").
+- **Output `ORDER` if:**
+  1. User wants to place an order, make a purchase, or buy something (Hebrew: "אני רוצה להזמין", "לקנות", "לרכוש", "איך מזמינים", "אפשר להזמין", English: "I want to order", "can I order", "how to order").
+  2. User asks about delivery, payment, or ordering process.
 - **Output `CATEGORY` if:**
   1. User asks "what categories do you have" or "what types of dishes" (Hebrew: "איזה קטגוריות", "איזה מנות יש לכם", "מה יש לכם").
   2. User wants to see the FULL menu overview or category list.
@@ -61,7 +64,7 @@ class ChatService:
   2. Ambiguous, slang, or vague input.
   3. Greeting + question (e.g., 'Hi, do you have hummus?').
   4. Farewells, thank you messages, complaints, or general questions.
-- **Output Format:** Return ONLY the single word: `GREETING`, `CATEGORY`, or `SEARCH`."""
+- **Output Format:** Return ONLY the single word: `GREETING`, `ORDER`, `CATEGORY`, or `SEARCH`."""
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history[-4:] if len(history) > 4 else history)
@@ -78,6 +81,8 @@ class ChatService:
         print(f"[Router]: {result}")
         if result == "GREETING":
             return "GREETING"
+        elif result == "ORDER":
+            return "ORDER"
         elif result == "CATEGORY":
             return "CATEGORY"
         else:
@@ -116,6 +121,11 @@ class ChatService:
                 # User sent a greeting - return business info
                 from app.utils import get_business_info_message
                 response = get_business_info_message()
+                final_content = response
+            elif intent == "ORDER":
+                # User wants to order - redirect to website
+                from app.utils import get_order_redirect_message
+                response = get_order_redirect_message()
                 final_content = response
             elif intent == "CATEGORY":
                 # User wants category list
