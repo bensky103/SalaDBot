@@ -355,9 +355,23 @@ def is_general_menu_query(message: str) -> bool:
     # Remove punctuation for cleaner matching
     message_clean = message_lower.replace("?", "").replace("!", "").replace(",", "").strip()
 
+    # CHECK GENERAL PATTERNS FIRST (highest priority)
+    # Patterns that indicate wanting to see all categories/general overview
+    general_patterns = [
+        "איזה קטגוריות", "קטגוריות יש", "קטגוריות",
+        "מה יש לכם", "מה יש בתפריט", "מה אפשר להזמין",
+        "תפריט", "רשימה של", "מה אתם מציעים",
+        "איזה מנות יש לכם", "איזה מנות", "מה המנות", "מה הקטגוריות"
+    ]
+
+    # Check for matches first (check in cleaned message for better detection)
+    for pattern in general_patterns:
+        if pattern in message_clean:
+            return True
+
     # If message mentions "contains/with" an ingredient, it's a specific query
     ingredient_search_patterns = [
-        "מכיל", "מכילות", "שיש בהם", "שיש בו", "עם ", "ש", "גזר", "בטטה",
+        "מכיל", "מכילות", "שיש בהם", "שיש בו", "עם ", "גזר", "בטטה",
         "תפוח", "עגבני", "מלפפון", "בצל", "שום", "תירס"
     ]
 
@@ -379,19 +393,6 @@ def is_general_menu_query(message: str) -> bool:
     for item in specific_items:
         if item in message_lower:
             return False  # Specific query, not general
-
-    # Patterns that indicate wanting to see all categories/general overview
-    general_patterns = [
-        "מה יש לכם", "מה יש בתפריט", "מה אפשר להזמין",
-        "תפריט", "רשימה של", "מה אתם מציעים",
-        "איזה קטגוריות", "קטגוריות יש", "קטגוריות", "איזה מנות",
-        "מה המנות", "יש מנות", "מה הקטגוריות", "יש לכם"
-    ]
-
-    # Check for matches (check in cleaned message for better detection)
-    for pattern in general_patterns:
-        if pattern in message_clean:
-            return True
 
     return False
 
