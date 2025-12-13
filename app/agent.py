@@ -150,7 +150,7 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                 if category and total_count > 0:
                     self.session_manager.add_category_shown_dishes(user_id, dish_ids)
 
-            # Format for AI with counter if category query
+            # Format for AI (no counter - internal tracking only)
             formatted_items = format_menu_items_for_ai(items)
 
             if category and total_count > 0:
@@ -159,8 +159,8 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                 # Cap shown count at total (in case of duplicates/issues)
                 shown_count = min(shown_count, total_count)
 
-                # Prepend counter info
-                counter_info = f"[מציג {shown_count}/{total_count} מנות מקטגוריית {category}]\n\n"
+                # Add counter as HIDDEN system note (not shown to user, only for AI tracking)
+                counter_info = f"[INTERNAL: Shown {shown_count}/{total_count} dishes from category {category}. If user asks for more and shown=total, say 'זה כל המנות'.]\n\n"
                 return counter_info + formatted_items
 
             return formatted_items

@@ -6,6 +6,7 @@
 ### Tasks Completed:
 1. ✅ Created [app/chat_service.py](app/chat_service.py) - Router pattern implementation
 2. ✅ Added category list pre-check for "איזה קטגוריות" queries
+3. ✅ Hidden dish counter (internal tracking only, not shown to users)
 
 ### Implementation:
 - **classify_intent**: Router using gpt-4o-mini (bias towards SEARCH)
@@ -15,6 +16,7 @@
 - CHAT path: No database, direct LLM response
 - SEARCH path: Rewriter + get_menu_items tool + final answer
 - **Category query pre-check**: Detects "איזה קטגוריות יש לכם" and returns category list instead of dishes
+- **Counter hidden**: Changed from `[מציג X/Y מנות]` to `[INTERNAL: Shown X/Y dishes]` - AI tracks but doesn't display to user
 
 ---
 
