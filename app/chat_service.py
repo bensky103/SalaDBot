@@ -36,31 +36,35 @@ class ChatService:
         self,
         user_input: str,
         history: List[Dict[str, str]]
-    ) -> Literal["SEARCH", "CHAT", "CATEGORY"]:
+    ) -> Literal["GREETING", "SEARCH", "CHAT", "CATEGORY"]:
         """
-        Router: Classify if user needs database search, category list, or general chat
+        Router: Classify if user is greeting, needs database search, category list, or general chat
 
         Args:
             user_input: User's message
             history: Conversation history
 
         Returns:
-            "SEARCH", "CHAT", or "CATEGORY"
+            "GREETING", "SEARCH", "CHAT", or "CATEGORY"
         """
         system_prompt = """You are a Traffic Controller. Analyze the user's message.
-- **Output `CATEGORY` if (HIGHEST PRIORITY):**
-  1. User asks "what categories do you have" or "what types of dishes" (Hebrew: "איזה קטגוריות", "איזה מנות יש לכם", "מה יש לכם")
-  2. User wants to see the FULL menu overview or category list
-  3. User is asking about the range/variety of dishes WITHOUT specifying a specific category
+- **Output `GREETING` if (HIGHEST PRIORITY):**
+  1. The input is EXCLUSIVELY a simple greeting without any other content (Hebrew: "היי", "שלום", "הי", "מה קורה", "בוקר טוב", "ערב טוב", "הלו", English: "hi", "hello", "hey").
+  2. First message in conversation that is just a greeting.
+  3. DO NOT output GREETING if greeting + question/request (e.g., "היי, יש לכם חומוס?").
+- **Output `CATEGORY` if:**
+  1. User asks "what categories do you have" or "what types of dishes" (Hebrew: "איזה קטגוריות", "איזה מנות יש לכם", "מה יש לכם").
+  2. User wants to see the FULL menu overview or category list.
+  3. User is asking about the range/variety of dishes WITHOUT specifying a specific category.
 - **Output `SEARCH` if:**
   1. The user mentions a SPECIFIC food, ingredient, price, availability, or category name.
   2. The input is ambiguous, slang, or vague (e.g., 'I want that thing').
   3. The input is a mix of greeting + food (e.g., 'Hi, do you have hummus?').
   4. You are in doubt between SEARCH and CHAT. **BIAS TOWARDS SEARCH.**
 - **Output `CHAT` if (and ONLY if):**
-  1. The input is EXCLUSIVELY a greeting, farewell, 'thank you', or a complaint.
+  1. The input is a farewell, 'thank you', or a complaint (NOT a greeting).
   2. The input is a question about store hours or location (which you know from context).
-- **Output Format:** Return ONLY the single word: `CATEGORY`, `SEARCH`, or `CHAT`."""
+- **Output Format:** Return ONLY the single word: `GREETING`, `CATEGORY`, `SEARCH`, or `CHAT`."""
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history[-4:] if len(history) > 4 else history)
@@ -75,7 +79,9 @@ class ChatService:
 
         result = response.choices[0].message.content.strip().upper()
         print(f"[Router]: {result}")
-        if result == "CATEGORY":
+        if result == "GREETING":
+            return "GREETING"
+        elif result == "CATEGORY":
             return "CATEGORY"
         elif result == "SEARCH":
             return "SEARCH"
@@ -110,11 +116,17 @@ class ChatService:
             intent = await self.classify_intent(user_message, history)
 
             # Step 2: Branch based on intent
-            if intent == "CATEGORY":
+            if intent == "GREETING":
+                # User sent a greeting - return business info
+                from app.utils import get_business_info_message
+                response = get_business_info_message()
+                final_content = response
+            elif intent == "CATEGORY":
                 # User wants category list
                 response = get_category_list_message()
                 final_content = response
             elif intent == "CHAT":
+                # General conversation - no database
                 # General conversation - no database, no rewriter
                 system_msg = "You are a helpful assistant for a Deli. Answer politely. Do not make up menu items."
                 messages = [{"role": "system", "content": system_msg}]
