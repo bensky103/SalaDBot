@@ -120,7 +120,7 @@ async def run_all_tests():
     """Run all tests"""
     print("\n" + "=" * 70)
     print("  SALADBOT - CHAT SERVICE TEST SUITE")
-    print("  GPT-4o-mini with Router Pattern")
+    print("  GPT-4o-mini with Single LLM Architecture")
     print("=" * 70)
 
     tests = [

@@ -247,7 +247,7 @@ def is_valid_whatsapp_id(wa_id: str) -> bool:
 
 
 # Message Detection Helpers
-# Note: Hard-coded pattern matching removed - router (ChatService.classify_intent) handles intent classification
+# Note: Hard-coded pattern matching removed - LLM handles intent detection naturally via instructions.txt
 
 
 def get_order_redirect_message() -> str:

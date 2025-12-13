@@ -1,7 +1,7 @@
 # SaladBot Architecture Documentation
 
 ## Overview
-SaladBot is a WhatsApp chatbot that helps customers query a deli/salad menu. It uses a **simplified 2-step AI-driven Router Pattern** with OpenAI GPT-4o-mini for intelligent query classification and response generation. All hard-coded pattern matching has been removed, and the architecture preserves full conversation context by passing original messages directly to the LLM.
+SaladBot is a WhatsApp chatbot that helps customers query a deli/salad menu. It uses a **unified single-LLM architecture** with OpenAI GPT-4o-mini and function calling. All hard-coded pattern matching and router logic has been removed. The LLM naturally handles greetings, orders, category requests, and menu searches in one context-aware call.
 
 ---
 
@@ -61,7 +61,7 @@ SaladBot is a WhatsApp chatbot that helps customers query a deli/salad menu. It 
   - `/webhook` (POST) - Receives incoming WhatsApp messages
   - `/health` - Health check for monitoring
   - `/test-message` (POST) - Development test endpoint
-  - **Production**: Uses `ChatService` with router pattern
+  - **Production**: Uses `ChatService` with unified single-LLM architecture
 
 ### **WhatsApp Integration**
 - **`whatsapp.py`** - WhatsApp Cloud API client
@@ -69,30 +69,26 @@ SaladBot is a WhatsApp chatbot that helps customers query a deli/salad menu. It 
   - `parse_webhook_payload()` - Extracts user_id and message from webhook
   - `verify_webhook_signature()` - Security validation (HMAC)
 
-### **Core Logic (AI-Driven Router Pattern)**
-- **`chat_service.py`** - Production router architecture (3-step pipeline)
-  - `classify_intent()` - **Router**: LLM classifies message as CATEGORY/SEARCH/CHAT
-    - Uses GPT-4o-mini with temperature=0.0 for consistent classification
-    - Bias towards SEARCH (safer to query database than miss a request)
-    - No hard-coded patterns - pure AI interpretation
-  - `rewrite_user_query()` - **Rewriter**: Converts to standalone Hebrew query
-    - Resolves pronouns and context-dependent references
-    - Makes query self-contained for better tool calling
-  - `process_user_message()` - **Main Flow**: Orchestrates entire pipeline
+### **Core Logic (Unified Single LLM)**
+- **`chat_service.py`** - Production architecture with single LLM call
+  - `process_user_message()` - **Main Flow**: Unified conversation handler
+    - Builds full context with conversation history
+    - Loads instructions.txt for LLM guidance
+    - Single GPT-4o-mini call with function calling enabled
+    - LLM naturally detects intent and responds appropriately
     - Manages session history via `SessionManager`
     - Tracks shown dishes for variety (no repeats)
-    - Handles all 3 intent types (CATEGORY/SEARCH/CHAT)
   
   **Example Flow:**
   ```python
-  # User: "היי, איזה מנות יש לכם?"
-  intent = await classify_intent(...)  # Returns: "CATEGORY"
-  response = get_category_list_message()  # Returns category list
+  # User: "היי, מה קורה?"
+  # LLM reads instructions → Detects greeting → Returns business info
   
-  # User: "תראה לי מנות בשר"
-  intent = await classify_intent(...)  # Returns: "SEARCH"
-  rewritten = await rewrite_user_query(...)  # "מה המנות של בשר?"
-  # Calls get_menu_items(category="בשר") → Returns 5 dishes
+  # User: "יש לכם מנות בשר?"
+  # LLM → Calls get_menu_items(category="בשר") → Returns 5 dishes
+  
+  # User: "אני רוצה להזמין"
+  # LLM reads instructions → Detects order → Returns redirect message
 ### **Database & AI**
 - **`ai_core.py`** - Database queries + OpenAI tool schema
   - `GET_MENU_ITEMS_TOOL` - OpenAI function calling schema (defines parameters)
@@ -175,23 +171,21 @@ SaladBot is a WhatsApp chatbot that helps customers query a deli/salad menu. It 
 
 ---
 
-## Router Classification Examples
+## Conversation Examples
 
-### **CATEGORY Mode**
-Triggers when user asks for general overview:
+### **Greeting Detection**
+LLM detects greeting and returns business info:
 ```
-User: "היי, איזה מנות יש לכם?"
-Router: CATEGORY
-Response: [Full category list - סלטים, בשר, עוף, דגים, etc.]
+User: "היי, מה קורה?"
+LLM: Detects greeting → Returns business info message
+Response: "שלום! ברוכים הבאים לפיקניק מעדנים... 👋"
 ```
 
-### **SEARCH Mode**
-Triggers when user asks about specific dishes/categories:
+### **Menu Query**
+LLM calls get_menu_items function:
 ```
 User: "תראה לי מנות בשר"
-Router: SEARCH
-Rewriter: "מה המנות של בשר?"
-Tool Call: get_menu_items(category="בשר")
+LLM: Calls get_menu_items(category="בשר")
 Response: 
   חזה עוף בשומשום - 9₪ ל-100 גרם
   לביבה בשר - 9₪ ל-100 גרם
@@ -199,12 +193,24 @@ Response:
   ...
 ```
 
-### **CHAT Mode**
-Triggers for greetings, thanks, complaints:
+### **Order Request**
+LLM detects order intent and redirects:
 ```
-User: "תודה רבה!"
-Router: CHAT
-Response: [Polite acknowledgment, no database query]
+User: "אני רוצה להזמין"
+LLM: Detects order → Returns redirect message
+Response: "אשמח לעזור! אני בוט מידע... להזמנה: https://order.picnicmaadanim.co.il"
+```
+
+### **Context Awareness**
+LLM maintains context naturally:
+```
+User: "יש לכם מנות טבעוניות?"
+LLM: Calls get_menu_items(dietary_restriction="vegan")
+Response: [5 vegan dishes]
+
+User: "ואיזה קינוחים?"
+LLM: Understands context → Calls get_menu_items(category="קינוחים", dietary_restriction="vegan")
+Response: [Vegan desserts only]
 ```
 
 ---
@@ -238,7 +244,7 @@ Response: [Polite acknowledgment, no database query]
 ```
 User Query: "מנות ללא גלוטן"
     ↓
-[Router] → SEARCH
+[LLM] → Calls get_menu_items function
     ↓
 [Rewriter] → "מה המנות ללא גלוטן?"
     ↓
@@ -260,14 +266,14 @@ User Query: "מנות ללא גלוטן"
 
 ## Current State (Updated: Dec 13, 2025 - Latest)
 
-✅ **Production-Ready**: Simplified 2-step AI-driven router pattern
+✅ **Production-Ready**: Unified single-LLM architecture with function calling
 ✅ **No Hard-Coded Logic**: All pattern matching removed
 ✅ **Full Context Preservation**: Original messages + history passed to LLM
 ✅ **All Tests Passing**: test_agent.py, test_enhanced_agent.py, test_allergen_message.py, test_retry_mechanism.py
 
 ### **Latest Migration (Dec 13, 2025):**
 1. ✅ Removed `rewrite_user_query()` function (36 lines deleted)
-2. ✅ Simplified pipeline from 3-step to 2-step (Router → Main LLM)
+2. ✅ Removed router entirely - unified to single LLM call with function calling
 3. ✅ Fixed context loss - original messages now passed directly
 4. ✅ Enhanced `instructions.txt` with context awareness guidance
 5. ✅ Reduced API calls by 33% (2 calls instead of 3)
@@ -311,4 +317,4 @@ User Query: "מנות ללא גלוטן"
 **Next Steps**:
 1. Replace all calls to `agent.py` with `chat_service.py`
 2. Remove hard-coded logic from `utils.py`
-3. Test router accuracy with real conversations
+3. Monitor LLM intent detection accuracy with real conversations
