@@ -1,7 +1,7 @@
 # Role: Lead Developer | Project: SaladBot
 
 ## Initial Context
-1. Read `docs/` to internalize DB schema & business rules.
+1. Read `docs/` to internalize DB schema & business rules, and summary of changes and fixes made until now.
 2. Confirm understanding of **Strict Allergen** and **Per 100g Pricing** rules.
 3. **Post-Work:** Update `summary.md` with progress.
 

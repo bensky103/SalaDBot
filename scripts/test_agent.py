@@ -15,7 +15,8 @@ if sys.platform == 'win32':
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.agent import SaladBotAgent
+from app.chat_service import ChatService
+import asyncio
 
 
 def print_section(title):
@@ -31,14 +32,14 @@ def print_conversation(user_msg, bot_response):
     print(f"\n🤖 Bot: {bot_response}")
 
 
-def test_basic_menu_query():
+async def test_basic_menu_query():
     """Test 1: Basic menu query with price format validation"""
     print_section("TEST 1: Basic Query + Price Format (CRITICAL)")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     user_message = "מה יש לכם ללא גלוטן?"
 
-    response = agent.process_message(user_message, reset_history=True)
+    response = await chat_service.process_user_message(user_message, reset_history=True)
     print_conversation(user_message, response)
 
     # Validation
@@ -58,14 +59,14 @@ def test_basic_menu_query():
         print("⚠ WARNING: Price unit may be missing")
 
 
-def test_allergen_safety():
+async def test_allergen_safety():
     """Test 2: CRITICAL - Allergen safety"""
     print_section("TEST 2: Allergen Safety (CRITICAL)")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     user_message = "יש לי אלרגיה לאגוזים. מה בטוח לי?"
 
-    response = agent.process_message(user_message, reset_history=True)
+    response = await chat_service.process_user_message(user_message, reset_history=True)
     print_conversation(user_message, response)
 
     # Validation
@@ -79,14 +80,14 @@ def test_allergen_safety():
         print("⚠ Warning: Safety language not clear")
 
 
-def test_factuality():
+async def test_factuality():
     """Test 3: CRITICAL - Factuality (no hallucination)"""
     print_section("TEST 3: Factuality Test (CRITICAL)")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     user_message = "יש לכם פיצה?"
 
-    response = agent.process_message(user_message, reset_history=True)
+    response = await chat_service.process_user_message(user_message, reset_history=True)
     print_conversation(user_message, response)
 
     # Validation
@@ -100,14 +101,14 @@ def test_factuality():
         print("\n⚠ Warning: Response unclear about availability")
 
 
-def test_vegan_query():
+async def test_vegan_query():
     """Test 4: Dietary restriction query"""
     print_section("TEST 4: Vegan Dietary Query")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     user_message = "יש לכם מנות טבעוניות?"
 
-    response = agent.process_message(user_message, reset_history=True)
+    response = await chat_service.process_user_message(user_message, reset_history=True)
     print_conversation(user_message, response)
 
     print("\n✓ Response received")
@@ -115,11 +116,11 @@ def test_vegan_query():
         print("✓ Response mentions vegan context")
 
 
-def run_all_tests():
+async def run_all_tests():
     """Run all tests"""
     print("\n" + "=" * 70)
-    print("  SALADBOT AGENT - LIGHTWEIGHT TEST SUITE")
-    print("  GPT-4o-mini with Function Calling")
+    print("  SALADBOT - CHAT SERVICE TEST SUITE")
+    print("  GPT-4o-mini with Router Pattern")
     print("=" * 70)
 
     tests = [
@@ -134,7 +135,7 @@ def run_all_tests():
 
     for i, (name, test_func) in enumerate(tests, 1):
         try:
-            test_func()
+            await test_func()
             print(f"\n✅ Test {i}/{len(tests)} PASSED: {name}")
             passed += 1
         except Exception as e:
@@ -158,4 +159,4 @@ def run_all_tests():
 
 
 if __name__ == "__main__":
-    run_all_tests()
+    asyncio.run(run_all_tests())

@@ -11,8 +11,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding='utf-8')
 
-from app.agent import SaladBotAgent
+from app.chat_service import ChatService
 from app.utils import parse_hebrew_day_range, is_item_available_today
+import asyncio
 
 
 def print_section(title):
@@ -38,41 +39,41 @@ def test_day_parsing():
         print(f"Parsed days: {days}")
         print()
 
-def test_greeting_detection():
+async def test_greeting_detection():
     """Test greeting detection"""
     print_section("TEST 2: Greeting Detection & Business Info")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_user_greeting"
 
     greetings = ["שלום", "היי", "hello", "מה נשמע"]
 
     for greeting in greetings:
         print(f"User: {greeting}")
-        response = agent.process_message(greeting, test_user_id)
+        response = await chat_service.process_user_message(greeting, test_user_id)
         print(f"Bot: {response[:100]}...")  # First 100 chars
         print()
 
 
-def test_general_menu_query():
+async def test_general_menu_query():
     """Test general menu query (should list categories)"""
     print_section("TEST 3: General Menu Query - Category Listing")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_user_general"
 
     query = "מה יש לכם?"
     print(f"User: {query}")
-    response = agent.process_message(query, test_user_id)
+    response = await chat_service.process_user_message(query, test_user_id)
     print(f"Bot: {response}")
     print()
 
 
-def test_specific_query_with_variety():
+async def test_specific_query_with_variety():
     """Test specific dish query with variety tracking"""
     print_section("TEST 4: Dish Variety Tracking (No Repeats)")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_user_variety"
 
     # Ask for salads multiple times - should get different dishes each time
@@ -86,21 +87,21 @@ def test_specific_query_with_variety():
 
     for query in queries:
         print(f"\nUser: {query}")
-        response = agent.process_message(query, test_user_id)
+        response = await chat_service.process_user_message(query, test_user_id)
         print(f"Bot: {response[:300]}...")  # First 300 chars
 
         # Check session info
-        session_info = agent.get_session_info(test_user_id)
-        print(f"\nSession info: {session_info}")
+        shown_dishes = chat_service.session_manager.get_shown_dishes(test_user_id)
+        print(f"\nShown dishes count: {len(shown_dishes)}")
 
     print("\n✓ Each query should show DIFFERENT dishes (no repeats)")
 
 
-def test_conversation_history():
+async def test_conversation_history():
     """Test conversation history context"""
     print_section("TEST 5: Conversation History Context")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_user_history"
 
     conversation = [
@@ -111,19 +112,19 @@ def test_conversation_history():
 
     for message in conversation:
         print(f"\nUser: {message}")
-        response = agent.process_message(message, test_user_id)
+        response = await chat_service.process_user_message(message, test_user_id)
         print(f"Bot: {response[:200]}...")
 
         # Show history length
-        session_info = agent.get_session_info(test_user_id)
-        print(f"Messages in history: {session_info['message_count']}")
+        history = chat_service.session_manager.get_history(test_user_id)
+        print(f"Messages in history: {len(history)}")
 
 
-def test_hebrew_search():
+async def test_hebrew_search():
     """Test Hebrew search functionality"""
     print_section("TEST 6: Hebrew Search in Database")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_user_search"
 
     hebrew_queries = [
@@ -135,21 +136,21 @@ def test_hebrew_search():
 
     for query in hebrew_queries:
         print(f"\nUser: {query}")
-        response = agent.process_message(query, test_user_id)
+        response = await chat_service.process_user_message(query, test_user_id)
         print(f"Bot: {response[:250]}...")
         print()
 
 
-def test_allergen_safety():
+async def test_allergen_safety():
     """Test allergen safety (CRITICAL)"""
     print_section("TEST 7: CRITICAL - Allergen Safety")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_user_allergen"
 
     query = "יש לי אלרגיה לאגוזים, מה בטוח בשבילי?"
     print(f"User: {query}")
-    response = agent.process_message(query, test_user_id)
+    response = await chat_service.process_user_message(query, test_user_id)
     print(f"Bot: {response}")
     print()
 
@@ -163,16 +164,16 @@ def test_allergen_safety():
         print("✗ FAIL: Response missing safety language")
 
 
-def test_price_format():
+async def test_price_format():
     """Test price format (CRITICAL)"""
     print_section("TEST 8: CRITICAL - Price Format Validation")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_user_price"
 
     query = "מה המחיר של סלטים?"
     print(f"User: {query}")
-    response = agent.process_message(query, test_user_id)
+    response = await chat_service.process_user_message(query, test_user_id)
     print(f"Bot: {response}")
     print()
 
@@ -186,19 +187,19 @@ def test_price_format():
         print("⚠ WARNING: Price units not found (check response)")
 
 
-def main():
+async def main():
     """Run all tests"""
-    print("\n" + "🧪 SALADBOT V2 - ENHANCED AGENT TEST SUITE" + "\n")
+    print("\n" + "🧪 SALADBOT - CHAT SERVICE TEST SUITE" + "\n")
 
     try:
         test_day_parsing()
-        test_greeting_detection()
-        test_general_menu_query()
-        test_specific_query_with_variety()
-        test_conversation_history()
-        test_hebrew_search()
-        test_allergen_safety()
-        test_price_format()
+        await test_greeting_detection()
+        await test_general_menu_query()
+        await test_specific_query_with_variety()
+        await test_conversation_history()
+        await test_hebrew_search()
+        await test_allergen_safety()
+        await test_price_format()
 
         print("\n" + "="*60)
         print("  ✅ ALL TESTS COMPLETED")
@@ -221,4 +222,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

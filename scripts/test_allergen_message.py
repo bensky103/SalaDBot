@@ -10,15 +10,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding='utf-8')
 
-from app.agent import SaladBotAgent
+from app.chat_service import ChatService
+import asyncio
 
-def test_allergen_query():
+async def test_allergen_query():
     """Test allergen query with safety message"""
     print("\n" + "="*60)
     print("  Testing Allergen Safety Message")
     print("="*60 + "\n")
 
-    agent = SaladBotAgent()
+    chat_service = ChatService()
     test_user_id = "test_allergen_user"
 
     # Test queries that should trigger safety message
@@ -33,7 +34,7 @@ def test_allergen_query():
         print(f"Test {i}/3: {query}")
         print('='*60)
 
-        response = agent.process_message(query, test_user_id)
+        response = await chat_service.process_user_message(query, test_user_id)
         print(f"\nBot Response:\n{response}\n")
 
         # Check if safety message is included
@@ -45,4 +46,4 @@ def test_allergen_query():
         print()
 
 if __name__ == "__main__":
-    test_allergen_query()
+    asyncio.run(test_allergen_query())

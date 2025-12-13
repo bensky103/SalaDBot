@@ -1,18 +1,84 @@
 # SaladBot POC - Progress Summary
 
-## Session [Current]: Router Pattern Architecture
+## Session [Current]: AI-Only Architecture - Removed Hard-Coded Pattern Matching
 **Date**: 2025-12-13
 
 ### Tasks Completed:
+1. ✅ **Deleted `app/agent.py`** - Completely removed deprecated legacy agent (371 lines)
+2. ✅ **Removed hard-coded functions from `utils.py`**:
+   - Deleted `is_greeting_or_generic()` (67 lines) - Router's CHAT classification replaces this
+   - Deleted `is_allergen_query()` (27 lines) - LLM + Tool schema understand allergen context
+   - Deleted `is_general_menu_query()` (70 lines) - Router's CATEGORY classification replaces this
+   - **Total: 164 lines of brittle pattern matching removed**
+3. ✅ **Updated `app/main.py`** - Migrated production webhook to use `ChatService` (router pattern)
+   - Replaced `SaladBotAgent` with `ChatService`
+   - Updated all `agent.process_message()` calls to `await chat_service.process_user_message()`
+   - Made webhook handler async-compatible
+4. ✅ **Updated test scripts**:
+   - `scripts/test_allergen_message.py` - Now uses ChatService with async/await
+   - `scripts/test_enhanced_agent.py` - Converted all tests to async ChatService
+5. ✅ **Documentation**: Updated summary with migration details
+
+### Architecture Changes:
+**Before (Hard-Coded Pattern Matching):**
+```
+User Message → agent.py → is_greeting_or_generic() → keyword lists
+                       → is_allergen_query() → keyword lists
+                       → is_general_menu_query() → pattern matching
+                       → Database query
+```
+
+**After (AI-Only Router Pattern):**
+```
+User Message → ChatService.classify_intent() [LLM Router]
+                       ↓
+            ┌──────────┼──────────┐
+            ↓          ↓          ↓
+        CATEGORY    SEARCH     CHAT
+            ↓          ↓          ↓
+     get_categories  Rewriter   Direct LLM
+                        ↓
+                    get_menu_items
+```
+
+### Benefits:
+✅ **No false positives** - LLM understands context better than regex/keywords
+✅ **Handles typos** - "גלטון" works as well as "גלוטן"
+✅ **Context-aware** - "ואיזה סלטים?" maintains vegan filter from previous query
+✅ **No maintenance** - No need to update keyword lists for new items/categories
+✅ **Cleaner codebase** - 535 lines removed (371 from agent.py + 164 from utils.py)
+✅ **Production-ready** - Main webhook now uses router pattern
+
+### Technical Details:
+- **Router** (`classify_intent`): Uses GPT-4o-mini with temperature=0.0 for consistent classification
+- **Bias towards SEARCH**: When uncertain, router defaults to database search (safer than missing a query)
+- **Tool Schema**: Parameter descriptions guide LLM to use Hebrew values and proper filters
+- **Instructions**: `docs/instructions.txt` provides business rules without hard-coded logic
+
+---
+
+## Session: Router Pattern Architecture
+**Date**: 2025-12-13 (earlier)
+
+### Tasks Completed:
 1. ✅ Created [app/chat_service.py](app/chat_service.py) - Router pattern implementation
-2. ✅ Added category list pre-check for "איזה קטגוריות" queries
-3. ✅ Hidden dish counter (internal tracking only, not shown to users)
-4. ✅ Enhanced `is_general_menu_query()` detection - added "קטגוריות" and "יש לכם" patterns
-5. ✅ Added debug logging for dish exclusion tracking
-6. ✅ Updated instructions.txt - removed bullet points (•) and dietary flags (🌱, ללא גלוטן) from response format
-7. ✅ Fixed Hebrew text alignment - right-aligned format without bullets
-8. ✅ Added debug logging for category query detection
-9. ✅ Fixed `is_general_menu_query()` logic - check general patterns FIRST before specific items
+2. ✅ Hidden dish counter (internal tracking only, not shown to users)
+3. ✅ Added debug logging for dish exclusion tracking
+4. ✅ Updated instructions.txt - removed bullet points (•) and dietary flags (🌱, ללא גלוטן) from response format
+5. ✅ Fixed Hebrew text alignment - right-aligned format without bullets
+6. ✅ **Replaced hard-coded category detection with LLM-based router** - 3-way classification (CATEGORY/SEARCH/CHAT)
+7. ✅ Created [ARCHITECTURE.md](ARCHITECTURE.md) - Complete system documentation
+
+### Implementation:
+- **classify_intent**: Enhanced router with 3 modes - CATEGORY, SEARCH, CHAT
+- Router now detects "איזה מנות יש לכם" and routes to CATEGORY (returns category list)
+- Removed brittle pattern matching from `is_general_menu_query()` - LLM handles classification
+- CATEGORY path: Returns category list directly
+- SEARCH path: Rewriter + get_menu_items tool + final answer
+- CHAT path: Direct LLM response without database
+
+### Documentation:
+- **ARCHITECTURE.md**: End-to-end request flow, file-by-file breakdown, router examples, data flow diagrams
 
 ### Implementation:
 - **classify_intent**: Router using gpt-4o-mini (bias towards SEARCH)

@@ -16,7 +16,7 @@ from app.whatsapp import (
     send_error_message,
     verify_webhook_signature
 )
-from app.agent import SaladBotAgent
+from app.chat_service import ChatService
 from app.utils import setup_logging
 
 # Setup logging
@@ -29,8 +29,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Initialize agent (singleton for the application)
-agent = SaladBotAgent()
+# Initialize chat service (singleton for the application)
+chat_service = ChatService()
 
 
 @app.get("/")
@@ -150,15 +150,15 @@ async def webhook_handler(request: Request):
 
         logger.info(f"Processing message from {user_id}: {user_message[:100]}...")
 
-        # Process message with agent (with conversation history)
+        # Process message with chat service (with conversation history)
         try:
-            bot_response = agent.process_message(
+            bot_response = await chat_service.process_user_message(
                 user_message=user_message,
                 user_id=user_id,  # Track history per user
                 reset_history=False  # Keep conversation context
             )
 
-            logger.info(f"Agent response generated: {bot_response[:100]}...")
+            logger.info(f"Chat service response generated: {bot_response[:100]}...")
 
             # Send response back to user
             success = whatsapp_client.send_text_message(
@@ -207,8 +207,8 @@ async def test_message(request: Request):
         if not to or not message:
             raise HTTPException(status_code=400, detail="Missing 'to' or 'message' field")
 
-        # Process message with agent
-        bot_response = agent.process_message(message, reset_history=True)
+        # Process message with chat service
+        bot_response = await chat_service.process_user_message(message, reset_history=True)
 
         # Send response
         success = whatsapp_client.send_text_message(to, bot_response)
@@ -246,7 +246,7 @@ async def startup_event():
     else:
         logger.info("WhatsApp configuration validated successfully")
 
-    logger.info(f"Agent initialized with model: {agent.model}")
+    logger.info(f"Chat service initialized with model: {chat_service.model}")
     logger.info("API ready to receive requests")
     logger.info("=" * 60)
 

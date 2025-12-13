@@ -16,7 +16,7 @@ from app.ai_core import (
     prepare_user_message_with_instructions
 )
 from app.session_manager import SessionManager
-from app.utils import is_general_menu_query, get_category_list_message
+from app.utils import get_category_list_message
 
 load_dotenv()
 
@@ -35,27 +35,31 @@ class ChatService:
         self,
         user_input: str,
         history: List[Dict[str, str]]
-    ) -> Literal["SEARCH", "CHAT"]:
+    ) -> Literal["SEARCH", "CHAT", "CATEGORY"]:
         """
-        Router: Classify if user needs database search or general chat
+        Router: Classify if user needs database search, category list, or general chat
 
         Args:
             user_input: User's message
             history: Conversation history
 
         Returns:
-            "SEARCH" or "CHAT"
+            "SEARCH", "CHAT", or "CATEGORY"
         """
         system_prompt = """You are a Traffic Controller. Analyze the user's message.
+- **Output `CATEGORY` if (HIGHEST PRIORITY):**
+  1. User asks "what categories do you have" or "what types of dishes" (Hebrew: "איזה קטגוריות", "איזה מנות יש לכם", "מה יש לכם")
+  2. User wants to see the FULL menu overview or category list
+  3. User is asking about the range/variety of dishes WITHOUT specifying a specific category
 - **Output `SEARCH` if:**
-  1. The user mentions food, ingredients, prices, availability, or categories.
+  1. The user mentions a SPECIFIC food, ingredient, price, availability, or category name.
   2. The input is ambiguous, slang, or vague (e.g., 'I want that thing').
   3. The input is a mix of greeting + food (e.g., 'Hi, do you have hummus?').
-  4. You are in doubt. **BIAS TOWARDS SEARCH.**
+  4. You are in doubt between SEARCH and CHAT. **BIAS TOWARDS SEARCH.**
 - **Output `CHAT` if (and ONLY if):**
   1. The input is EXCLUSIVELY a greeting, farewell, 'thank you', or a complaint.
   2. The input is a question about store hours or location (which you know from context).
-- **Output Format:** Return ONLY the single word: `SEARCH` or `CHAT`."""
+- **Output Format:** Return ONLY the single word: `CATEGORY`, `SEARCH`, or `CHAT`."""
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history[-4:] if len(history) > 4 else history)
@@ -70,7 +74,12 @@ class ChatService:
 
         result = response.choices[0].message.content.strip().upper()
         print(f"[Router]: {result}")
-        return "SEARCH" if result == "SEARCH" else "CHAT"
+        if result == "CATEGORY":
+            return "CATEGORY"
+        elif result == "SEARCH":
+            return "SEARCH"
+        else:
+            return "CHAT"
 
     async def rewrite_user_query(
         self,
@@ -129,16 +138,6 @@ class ChatService:
             self.session_manager.clear_session(user_id)
 
         try:
-            # Check for general menu/category query first
-            if is_general_menu_query(user_message):
-                print(f"[Category Query Detected]: {user_message}")
-                response = get_category_list_message()
-                self.session_manager.add_message(user_id, "user", user_message)
-                self.session_manager.add_message(user_id, "assistant", response)
-                return response
-            else:
-                print(f"[Not Category Query]: {user_message}")
-
             # Get conversation history
             history = self.session_manager.get_history(user_id)
 
@@ -146,7 +145,11 @@ class ChatService:
             intent = await self.classify_intent(user_message, history)
 
             # Step 2: Branch based on intent
-            if intent == "CHAT":
+            if intent == "CATEGORY":
+                # User wants category list
+                response = get_category_list_message()
+                final_content = response
+            elif intent == "CHAT":
                 # General conversation - no database, no rewriter
                 system_msg = "You are a helpful assistant for a Deli. Answer politely. Do not make up menu items."
                 messages = [{"role": "system", "content": system_msg}]
