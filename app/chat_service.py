@@ -131,10 +131,13 @@ class ChatService:
         try:
             # Check for general menu/category query first
             if is_general_menu_query(user_message):
+                print(f"[Category Query Detected]: {user_message}")
                 response = get_category_list_message()
                 self.session_manager.add_message(user_id, "user", user_message)
                 self.session_manager.add_message(user_id, "assistant", response)
                 return response
+            else:
+                print(f"[Not Category Query]: {user_message}")
 
             # Get conversation history
             history = self.session_manager.get_history(user_id)

@@ -10,6 +10,8 @@
 4. ✅ Enhanced `is_general_menu_query()` detection - added "קטגוריות" and "יש לכם" patterns
 5. ✅ Added debug logging for dish exclusion tracking
 6. ✅ Updated instructions.txt - removed bullet points (•) and dietary flags (🌱, ללא גלוטן) from response format
+7. ✅ Fixed Hebrew text alignment - right-aligned format without bullets
+8. ✅ Added debug logging for category query detection
 
 ### Implementation:
 - **classify_intent**: Router using gpt-4o-mini (bias towards SEARCH)
