@@ -374,9 +374,50 @@ def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = Fals
     format_instruction = "Full details" if include_details else "Name, price, package only"
 
     logger.debug(f"{{format_menu_items_for_ai}} Formatting {len(items)} items | Mode: {mode_tag} | Details: {include_details}")
+    
+    # CRITICAL: For detail mode with ONE item, use natural language format to prevent data mixing
+    if include_details and len(items) == 1:
+        item = items[0]
+        response_parts = []
+        
+        # Dish name header
+        response_parts.append(f"=== {item['name']} ===\n")
+        
+        # Price
+        if item.get('price_per_100g'):
+            response_parts.append(f"💰 מחיר: {item['price_per_100g']}₪ ל-100 גרם")
+        if item.get('price_per_unit'):
+            response_parts.append(f"💰 מחיר: {item['price_per_unit']}₪ ליחידה")
+        
+        # Package
+        if item.get('package_type'):
+            response_parts.append(f"📦 אריזה: {item['package_type']}")
+        
+        # Ingredients (CRITICAL)
+        if item.get('description'):
+            response_parts.append(f"\n🥘 {item['description']}")
+        
+        # Allergens (CRITICAL)
+        if item.get('allergens_contains'):
+            response_parts.append(f"\n⚠️ מכילה: {item['allergens_contains']}")
+        if item.get('allergens_traces'):
+            response_parts.append(f"⚠️ עלולה להכיל עקבות של: {item['allergens_traces']}")
+        
+        # Availability
+        if item.get('availability_days'):
+            response_parts.append(f"\n📅 זמינות: {item['availability_days']}")
+        
+        return '\n'.join(response_parts)
+    
+    # Original format for browsing or multiple items
     formatted_lines = [f"{mode_tag} {format_instruction}\n"]
-    for item in items:
+    
+    for idx, item in enumerate(items, 1):
         parts = []
+        
+        # CRITICAL: Add dish number and clear separator for multiple dishes
+        if len(items) > 1:
+            parts.append(f"[DISH #{idx}]")
 
         # Name (always included)
         parts.append(item['name'])
@@ -423,7 +464,13 @@ def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = Fals
                 parts.append(item['description'])
 
         # Combine all parts with separator
-        formatted_lines.append(' | '.join(parts))
+        dish_line = ' | '.join(parts)
+        
+        # Add explicit separator between dishes for clarity
+        if len(items) > 1:
+            dish_line = f"--- {dish_line} ---"
+        
+        formatted_lines.append(dish_line)
 
     return '\n\n'.join(formatted_lines)
 
