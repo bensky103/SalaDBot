@@ -190,9 +190,16 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
 
         # Get category from args or use last category context if not specified
         category = function_args.get("category")
-        if not category and last_category:
+        search_term = function_args.get("search_term")
+        
+        # CRITICAL: Do NOT apply category context when searching for specific dish by name
+        # This allows cross-category queries like "מה הרכיבים של מרק ירקות?" while browsing cookies
+        if not category and last_category and not search_term:
+            # Only apply saved category if no search_term (general browsing, not specific dish search)
             category = last_category
             logger.debug(f"{{_handle_single_menu_query}} [Context] Using saved category: {category}")
+        elif not category and search_term:
+            logger.debug(f"{{_handle_single_menu_query}} [Context] Skipping category context - specific dish search")
 
         # Save category context if provided
         if category:
@@ -306,7 +313,15 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                 function_args = json.loads(tool_call.function.arguments)
 
                 # Get category from args or use last category context
-                category = function_args.get("category") or last_category
+                # CRITICAL: Do NOT apply category context when searching for specific dish by name
+                category = function_args.get("category")
+                search_term = function_args.get("search_term")
+                
+                if not category and last_category and not search_term:
+                    category = last_category
+                    logger.debug(f"{{_handle_multiple_tool_calls}} [Tool {tool_call.id}] Using saved category: {category}")
+                elif not category and search_term:
+                    logger.debug(f"{{_handle_multiple_tool_calls}} [Tool {tool_call.id}] Skipping category context - specific dish search")
 
                 # Save category context
                 if category:

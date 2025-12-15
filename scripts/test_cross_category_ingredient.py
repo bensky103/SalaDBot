@@ -9,11 +9,14 @@ Bot: Shows cookies, system saves category "עוגיות"
 User: "מה הרכיבים של מרק ירקות?" (what are the ingredients of vegetable soup?)
 Bot: Should find the soup (NOT restricted by cookies category)
 
-BEFORE FIX: Bot would search with category="עוגיות" AND search_term="מרק ירקות"
-            Result: No soup found in cookies category → "כל המנות כבר הוצגו"
+BEFORE FIX: 
+- LLM correctly called get_menu_items(search_term="מרק ירקות") with NO category
+- Backend code in chat_service.py (L191-195) automatically applied saved category="עוגיות"
+- Result: No soup found in cookies category → "כל המנות כבר הוצגו"
 
-AFTER FIX: Bot should use ONLY search_term="מרק ירקות", NO category filter
-           Result: Soup found successfully
+AFTER FIX: 
+- Backend skips category context when search_term is present (L194-199)
+- Result: Soup found successfully across all categories
 """
 
 import sys

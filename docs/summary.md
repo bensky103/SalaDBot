@@ -40,13 +40,13 @@ User  ChatService.process_user_message()
 ### Fix #1: Cross-Category Ingredient Query Bug (2025-12-15)
 **Problem**: User browsing cookies asks "מה הרכיבים של מרק ירקות?" → Bot returns "כל המנות בקטגוריה זו כבר הוצגו" (can't find soup)
 
-**Root Cause**: When user asks for details about a **specific named dish from different category**, LLM incorrectly applied saved category context (`category="עוגיות"`) in addition to `search_term`, filtering out the soup.
+**Root Cause**: Backend code (`chat_service.py` L191-195) automatically applied saved category context even when LLM correctly sent ONLY `search_term` (no category). This filtered queries to wrong category.
 
-**Solution**: `docs/instructions.txt`: Added explicit rules:
-- When asking for specific dish by name (ingredient queries), use ONLY `search_term`, DO NOT include `category` filter
-- Added to "When to CLEAR category context": User asks for details about specific named dish from different category
+**Solution**: 
+- `app/chat_service.py` (L194-199): Skip category context when `search_term` is present (specific dish search)
+- `docs/instructions.txt`: Added explicit rules for LLM to not include category in specific dish queries
 
-**Result**: ✅ Ingredient queries work across all categories regardless of browsing context. ✅ Search by dish name no longer restricted by category context.
+**Result**: ✅ Ingredient queries work across all categories regardless of browsing context. ✅ Backend no longer restricts search_term queries by category.
 
 ---
 
