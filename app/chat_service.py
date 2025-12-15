@@ -343,6 +343,11 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                 "content": response_content
             })
 
+        # Check if this is a "multiple ingredient query" pattern - if so, pre-format the response
+        if self._is_multiple_ingredient_query(assistant_message.tool_calls, messages):
+            logger.info(f"{{_handle_multiple_tool_calls}} [Pre-format] Detected multiple ingredient query - formatting in Python")
+            return self._format_multiple_ingredients_response(assistant_message.tool_calls, messages)
+
         # Get final response from LLM after processing ALL tool calls
         logger.info(f"{{_handle_multiple_tool_calls}} [LLM Call] Getting final response for {len(assistant_message.tool_calls)} tool results")
 
@@ -353,3 +358,66 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
         )
 
         return final_response.choices[0].message.content
+
+    def _is_multiple_ingredient_query(self, tool_calls, messages) -> bool:
+        """Detect if this is a multiple ingredient query pattern"""
+        # Check if all tool calls are get_menu_items with search_term
+        if len(tool_calls) < 2:
+            return False
+        
+        for tool_call in tool_calls:
+            if tool_call.function.name != "get_menu_items":
+                return False
+            args = json.loads(tool_call.function.arguments)
+            if not args.get("search_term"):
+                return False
+        
+        return True
+
+    def _format_multiple_ingredients_response(self, tool_calls, messages) -> str:
+        """Pre-format response for multiple ingredient queries (no LLM needed)"""
+        # Extract tool responses from messages
+        tool_responses = {}
+        for msg in messages:
+            # Handle both dict and object formats
+            if isinstance(msg, dict):
+                if msg.get("role") == "tool":
+                    tool_responses[msg["tool_call_id"]] = msg["content"]
+            elif hasattr(msg, 'role') and msg.role == "tool":
+                tool_responses[msg.tool_call_id] = msg.content
+        
+        # Parse each tool response and extract ingredients
+        formatted_parts = []
+        for tool_call in tool_calls:
+            response_content = tool_responses.get(tool_call.id, "")
+            
+            # Extract dish name and ingredients from response
+            lines = response_content.split('\n')
+            dish_line = None
+            ingredients = None
+            
+            for line in lines:
+                if '|' in line and 'רכיבים:' in line:
+                    dish_line = line
+                    break
+            
+            if dish_line:
+                # Extract dish name (before first |)
+                parts = dish_line.split('|')
+                dish_name = parts[0].strip()
+                
+                # Extract ingredients (after רכיבים:)
+                for part in parts:
+                    if 'רכיבים:' in part:
+                        ingredients = part.split('רכיבים:')[1].strip()
+                        break
+                
+                if dish_name and ingredients:
+                    formatted_parts.append(f"{dish_name} מכילה: {ingredients}")
+        
+        # Join all formatted parts with double newline
+        if formatted_parts:
+            return '\n\n'.join(formatted_parts)
+        
+        # Fallback if parsing failed
+        return "מצטער, לא הצלחתי לאחזר את הרכיבים. אנא נסה שוב."

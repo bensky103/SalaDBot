@@ -96,8 +96,9 @@ class Config:
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
     # Temperature for AI responses (0.0 = deterministic, 1.0 = creative)
-    # Lower values = more consistent, higher values = more varied
-    OPENAI_TEMPERATURE: float = 0.7
+    # Set to 0.0 for maximum consistency and to prevent hallucination/mixing of data
+    # Especially important when synthesizing multiple tool responses
+    OPENAI_TEMPERATURE: float = 0.0
 
     # ========================================================================
     # SERVER CONFIGURATION
