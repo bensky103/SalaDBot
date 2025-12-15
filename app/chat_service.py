@@ -211,10 +211,18 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
         logger.debug(f"{{_handle_single_menu_query}} [Tracking] track_shown={track_shown}")
 
         # Determine if user wants details (ingredient queries, specific dish info)
-        # When track_shown=False, it means user is asking for DETAILS about specific dishes
-        # When track_shown=True, it means user is BROWSING (show minimal info)
-        include_details = not track_shown
-        logger.debug(f"{{_handle_single_menu_query}} [Display Mode] include_details={include_details}")
+        # CRITICAL: Auto-detect detail mode for specific dish searches
+        # When search_term is used WITHOUT category, it's likely an ingredient/detail query
+        if search_term and not category:
+            include_details = True
+            track_shown = False  # Don't track dishes in detail queries
+            logger.debug(f"{{_handle_single_menu_query}} [Auto-Detect] Specific dish search detected - forcing detail mode")
+        else:
+            # When track_shown=False, it means user is asking for DETAILS about specific dishes
+            # When track_shown=True, it means user is BROWSING (show minimal info)
+            include_details = not track_shown
+        
+        logger.debug(f"{{_handle_single_menu_query}} [Display Mode] include_details={include_details}, track_shown={track_shown}")
 
         # Only apply exclusion filter if we're tracking shown dishes
         exclude_ids = list(self.session_manager.get_shown_dishes(user_id)) if track_shown else []
@@ -330,7 +338,14 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                 # For multiple tool calls, use track_shown=False (detail mode)
                 # User is asking about multiple specific items/queries
                 track_shown = function_args.get("track_shown", False)
-                include_details = not track_shown
+                
+                # CRITICAL: Auto-detect detail mode for specific dish searches
+                if search_term and not category:
+                    include_details = True
+                    track_shown = False
+                    logger.debug(f"{{_handle_multiple_tool_calls}} [Tool {tool_call.id}] Specific dish search - forcing detail mode")
+                else:
+                    include_details = not track_shown
 
                 # Don't exclude dishes in multi-query mode (user wants full info)
                 exclude_ids = []

@@ -37,16 +37,23 @@ User  ChatService.process_user_message()
 
 ## RECENT FIXES
 
-### Fix #1: Cross-Category Ingredient Query Bug (2025-12-15)
-**Problem**: User browsing cookies asks "מה הרכיבים של מרק ירקות?" → Bot returns "כל המנות בקטגוריה זו כבר הוצגו" (can't find soup)
+### Fix #1: Cross-Category Ingredient Query Bug + Detail Mode Detection (2025-12-15)
+**Problem**: 
+1. User browsing cookies asks "מה הרכיבים של מרק ירקות?" → Bot returns "כל המנות בקטגוריה זו כבר הוצגו"
+2. Bot returns browsing mode data (name+price) instead of detail mode (ingredients) for ingredient queries
+3. Bot sometimes hallucinated "אין לי מידע" without calling the tool
 
-**Root Cause**: Backend code (`chat_service.py` L191-195) automatically applied saved category context even when LLM correctly sent ONLY `search_term` (no category). This filtered queries to wrong category.
+**Root Cause**: 
+1. Backend auto-applied category context even when LLM sent ONLY `search_term`
+2. Backend relied on LLM setting `track_shown=false`, but LLM didn't always do this
+3. LLM sometimes failed to call tool and made up "no information" response
 
 **Solution**: 
-- `app/chat_service.py` (L194-199): Skip category context when `search_term` is present (specific dish search)
-- `docs/instructions.txt`: Added explicit rules for LLM to not include category in specific dish queries
+- `app/chat_service.py` (L194-199, L318-332): Skip category context when `search_term` is present
+- `app/chat_service.py` (L210-220, L335-343): **Auto-detect detail mode** when `search_term` used without `category`
+- `docs/instructions.txt`: Added "STEP 0 - ALWAYS CALL THE TOOL" + strengthened anti-hallucination rules
 
-**Result**: ✅ Ingredient queries work across all categories regardless of browsing context. ✅ Backend no longer restricts search_term queries by category.
+**Result**: ✅ Ingredient queries work across categories. ✅ Backend auto-detects detail mode. ✅ Never returns browsing data for ingredient queries. ✅ LLM must always call tool.
 
 ---
 
