@@ -37,23 +37,26 @@ User  ChatService.process_user_message()
 
 ## RECENT FIXES
 
-### Fix #1: Cross-Category Ingredient Query Bug + Detail Mode Detection (2025-12-15)
+### Fix #1: Cross-Category Ingredient Query Bug + Detail Mode Detection + Tracking Fix (2025-12-15)
 **Problem**: 
 1. User browsing cookies asks "מה הרכיבים של מרק ירקות?" → Bot returns "כל המנות בקטגוריה זו כבר הוצגו"
 2. Bot returns browsing mode data (name+price) instead of detail mode (ingredients) for ingredient queries
 3. Bot sometimes hallucinated "אין לי מידע" without calling the tool
+4. **Ingredient queries were being tracked as "shown dishes"** → User can't browse that category later ("all shown")
 
 **Root Cause**: 
 1. Backend auto-applied category context even when LLM sent ONLY `search_term`
 2. Backend relied on LLM setting `track_shown=false`, but LLM didn't always do this
 3. LLM sometimes failed to call tool and made up "no information" response
+4. `track_shown` override happened but wasn't logged clearly, causing confusion about tracking behavior
 
 **Solution**: 
 - `app/chat_service.py` (L194-199, L318-332): Skip category context when `search_term` is present
-- `app/chat_service.py` (L210-220, L335-343): **Auto-detect detail mode** when `search_term` used without `category`
+- `app/chat_service.py` (L210-227, L340-352): **Auto-detect detail mode** when `search_term` used without `category` + separate LLM value from final decision
+- `app/chat_service.py` (L244-258): Enhanced logging with emojis to clearly show tracking decisions (✅ tracked, ⏭️ skipped, ⚠️ all shown)
 - `docs/instructions.txt`: Added "STEP 0 - ALWAYS CALL THE TOOL" + strengthened anti-hallucination rules
 
-**Result**: ✅ Ingredient queries work across categories. ✅ Backend auto-detects detail mode. ✅ Never returns browsing data for ingredient queries. ✅ LLM must always call tool.
+**Result**: ✅ Ingredient queries work across categories. ✅ Backend auto-detects detail mode. ✅ Detail queries never tracked as "shown". ✅ Clear logging for debugging. ✅ LLM must always call tool.
 
 ---
 

@@ -207,22 +207,25 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
             logger.debug(f"{{_handle_single_menu_query}} [Context] Saved category: {category}")
 
         # Get track_shown parameter (defaults to True if not provided)
-        track_shown = function_args.get("track_shown", True)
-        logger.debug(f"{{_handle_single_menu_query}} [Tracking] track_shown={track_shown}")
+        track_shown_from_llm = function_args.get("track_shown", True)
+        logger.debug(f"{{_handle_single_menu_query}} [Tracking] LLM sent track_shown={track_shown_from_llm}")
 
         # Determine if user wants details (ingredient queries, specific dish info)
         # CRITICAL: Auto-detect detail mode for specific dish searches
         # When search_term is used WITHOUT category, it's likely an ingredient/detail query
         if search_term and not category:
+            # Specific dish search - force detail mode and disable tracking
             include_details = True
             track_shown = False  # Don't track dishes in detail queries
-            logger.debug(f"{{_handle_single_menu_query}} [Auto-Detect] Specific dish search detected - forcing detail mode")
+            logger.info(f"{{_handle_single_menu_query}} [Auto-Detect] Specific dish search detected - OVERRIDING to detail mode, track_shown=False")
         else:
+            # Category browsing or general query
+            track_shown = track_shown_from_llm
             # When track_shown=False, it means user is asking for DETAILS about specific dishes
             # When track_shown=True, it means user is BROWSING (show minimal info)
             include_details = not track_shown
         
-        logger.debug(f"{{_handle_single_menu_query}} [Display Mode] include_details={include_details}, track_shown={track_shown}")
+        logger.info(f"{{_handle_single_menu_query}} [Final Mode] include_details={include_details}, track_shown={track_shown}")
 
         # Only apply exclusion filter if we're tracking shown dishes
         exclude_ids = list(self.session_manager.get_shown_dishes(user_id)) if track_shown else []
@@ -251,12 +254,12 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                 if new_dish_ids:
                     self.session_manager.add_shown_dishes(user_id, new_dish_ids)
                     total_shown = len(self.session_manager.get_shown_dishes(user_id))
-                    logger.info(f"{{_handle_single_menu_query}} [Tracking] Added {len(new_dish_ids)} new dishes | Total shown: {total_shown}")
+                    logger.info(f"{{_handle_single_menu_query}} [Tracking] ✅ Added {len(new_dish_ids)} new dishes (IDs: {new_dish_ids}) | Total shown: {total_shown}")
                 else:
-                    logger.warning(f"{{_handle_single_menu_query}} [Tracking] All {len(dish_ids)} dishes already shown | Setting all_shown=True")
+                    logger.warning(f"{{_handle_single_menu_query}} [Tracking] ⚠️ All {len(dish_ids)} dishes already shown (IDs: {dish_ids}) | Setting all_shown=True")
                     all_shown = True
             else:
-                logger.debug(f"{{_handle_single_menu_query}} [Tracking] Skipped tracking (detail mode)")
+                logger.info(f"{{_handle_single_menu_query}} [Tracking] ⏭️ Skipped tracking - detail mode (found {len(dish_ids)} dishes, IDs: {dish_ids})")
         else:
             # No items returned - could be truly empty category or all filtered out
             if exclude_ids:
@@ -337,14 +340,16 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
 
                 # For multiple tool calls, use track_shown=False (detail mode)
                 # User is asking about multiple specific items/queries
-                track_shown = function_args.get("track_shown", False)
+                track_shown_from_llm = function_args.get("track_shown", False)
+                logger.debug(f"{{_handle_multiple_tool_calls}} [Tool {tool_call.id}] LLM sent track_shown={track_shown_from_llm}")
                 
                 # CRITICAL: Auto-detect detail mode for specific dish searches
                 if search_term and not category:
                     include_details = True
                     track_shown = False
-                    logger.debug(f"{{_handle_multiple_tool_calls}} [Tool {tool_call.id}] Specific dish search - forcing detail mode")
+                    logger.info(f"{{_handle_multiple_tool_calls}} [Tool {tool_call.id}] Specific dish search - OVERRIDING to detail mode, track_shown=False")
                 else:
+                    track_shown = track_shown_from_llm
                     include_details = not track_shown
 
                 # Don't exclude dishes in multi-query mode (user wants full info)
