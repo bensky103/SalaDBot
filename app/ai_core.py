@@ -346,7 +346,7 @@ def _filter_allergen_exclusion(items: List[Dict[str, Any]], allergen: str) -> Li
     return safe_items
 
 
-def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = False, include_details: bool = False) -> str:
+def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = False, no_results: bool = False, include_details: bool = False) -> str:
     """
     Format menu items into a string for the AI to process.
 
@@ -355,7 +355,8 @@ def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = Fals
 
     Args:
         items: List of menu item dictionaries
-        all_shown: If True, indicates all matching items were already shown
+        all_shown: If True, indicates all matching items were already shown (browsing exhaustion)
+        no_results: If True, indicates query returned 0 results (legitimately empty)
         include_details: If True, include allergens, availability, dietary flags, ingredients (for detail queries)
 
     Returns:
@@ -364,6 +365,8 @@ def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = Fals
     if not items:
         if all_shown:
             return "[ALL_DISHES_SHOWN] כל המנות בקטגוריה זו כבר הוצגו."
+        if no_results:
+            return "[NO_RESULTS] לא נמצאו מנות התואמות את הקריטריונים."
         return "לא נמצאו פריטים תואמים בתפריט."
 
     # Add mode tag to help AI understand formatting requirements

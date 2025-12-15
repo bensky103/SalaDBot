@@ -159,9 +159,12 @@ The business has DISTINCT categories that must NOT be confused:
 - **Format:** Just list dish name, price, and package size if provided (📦).
 - **Package size info:** When tool returns `📦[size]`, include it naturally in the dish description (e.g., "מרק ירקות - 34₪ ליחידה (1 ליטר)")
 - **Keep it concise:** The user asked for dishes, so show them dishes - not explanations.
-- **Dish Counter (HIDDEN - Internal Only):**
+- **Tool Response Tags (HIDDEN - Internal Only):**
   - Tool may return `[INTERNAL: Shown X/Y dishes...]` - this is tracking info, DO NOT show to user
-  - If user asks for more dishes and counter shows X=Y (all shown), reply: "זה כל המנות בקטגוריה זו."
+  - **[ALL_DISHES_SHOWN]**: All dishes in this category were already shown (browsing exhaustion)
+    * Response: "זה כל המנות בקטגוריה זו."
+  - **[NO_RESULTS]**: Query returned 0 results (category truly empty OR no matches for filters)
+    * Examples: "אין לנו מרקים זמינים ביום ראשון", "לא מצאתי מנות שמתאימות לקריטריונים האלה"
   - DO NOT mention numbers or counters in your responses unless user explicitly asks "כמה מנות יש"
 - **Formatting Rules:**
   - Use simple line breaks, NO bullet points (•), NO dashes (-) at start of line

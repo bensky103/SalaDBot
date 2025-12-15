@@ -243,6 +243,7 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
 
         # Check if we got new items or if all items were already shown
         all_shown = False
+        no_results = False
         if items:
             dish_ids = [item["id"] for item in items]
 
@@ -261,14 +262,12 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
             else:
                 logger.info(f"{{_handle_single_menu_query}} [Tracking] ⏭️ Skipped tracking - detail mode (found {len(dish_ids)} dishes, IDs: {dish_ids})")
         else:
-            # No items returned - could be truly empty category or all filtered out
-            if exclude_ids:
-                logger.info(f"{{_handle_single_menu_query}} [Query Result] No new items available (all previously shown)")
-                all_shown = True
-            else:
-                logger.info(f"{{_handle_single_menu_query}} [Query Result] No items match query criteria")
+            # No items returned - query returned 0 results
+            # This is NORMAL and expected (empty category, no Sunday soups, etc.)
+            logger.info(f"{{_handle_single_menu_query}} [Query Result] 🔍 No items match query criteria (empty result set)")
+            no_results = True
 
-        function_response = format_menu_items_for_ai(items, all_shown=all_shown, include_details=include_details)
+        function_response = format_menu_items_for_ai(items, all_shown=all_shown, no_results=no_results, include_details=include_details)
 
         messages.append({
             "role": "tool",
@@ -364,7 +363,9 @@ You are SaladBot, a helpful customer service assistant for Picnic Maadanim deli.
                     availability_day=function_args.get("availability_day")
                 )
 
-                response_content = format_menu_items_for_ai(items, all_shown=False, include_details=include_details)
+                # In multiple tool calls mode, no_results is always False (we don't track "all shown")
+                no_results = (len(items) == 0)
+                response_content = format_menu_items_for_ai(items, all_shown=False, no_results=no_results, include_details=include_details)
 
             else:
                 logger.error(f"{{_handle_multiple_tool_calls}} [Tool {tool_call.id}] Unknown tool: {function_name}")
