@@ -37,7 +37,20 @@ User  ChatService.process_user_message()
 
 ## RECENT FIXES
 
-### Fix #1: Multiple Detail Queries - Temperature Fix + Enhanced Instructions (2025-12-15)
+### Fix #1: Cross-Category Ingredient Query Bug (2025-12-15)
+**Problem**: User browsing cookies asks "מה הרכיבים של מרק ירקות?" → Bot returns "כל המנות בקטגוריה זו כבר הוצגו" (can't find soup)
+
+**Root Cause**: When user asks for details about a **specific named dish from different category**, LLM incorrectly applied saved category context (`category="עוגיות"`) in addition to `search_term`, filtering out the soup.
+
+**Solution**: `docs/instructions.txt`: Added explicit rules:
+- When asking for specific dish by name (ingredient queries), use ONLY `search_term`, DO NOT include `category` filter
+- Added to "When to CLEAR category context": User asks for details about specific named dish from different category
+
+**Result**: ✅ Ingredient queries work across all categories regardless of browsing context. ✅ Search by dish name no longer restricted by category context.
+
+---
+
+### Fix #2: Multiple Detail Queries - Temperature Fix + Enhanced Instructions (2025-12-15)
 **Problem**: 
 1. When user asks "מה הרכיבים שלהם?" for 5 dishes, LLM mixes/jumbles ingredients
 2. When user asks "מה האלרגנים?" after showing dishes, bot repeats previous response or returns wrong data
@@ -62,7 +75,7 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #2: Category Exhaustion Retry Bug (2025-12-15)
+### Fix #3: Category Exhaustion Retry Bug (2025-12-15)
 **Problem**: When user asks "מה עוד?" after all עוגיות shown, bot returns קינוחים dishes instead of "all shown" message.
 
 **Root Cause**: Retry mechanism in `get_menu_items_implementation()` triggered even when items list empty due to exclusion (all dishes already shown). Fuzzy search then matched "עוגיות" in other categories' descriptions, returning wrong dishes.
@@ -73,7 +86,7 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #3: Prompt Caching Optimization + Extended Context Window (2025-12-15)
+### Fix #4: Prompt Caching Optimization + Extended Context Window (2025-12-15)
 **Problem**:
 1. System instructions (~4,050 tokens) sent twice per exchange = major token waste (72% of input)
 2. Context window limited to 8 exchanges - bot loses context in longer conversations
@@ -93,7 +106,7 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #4: Category Distinction Bug + Context Loss Fix (2025-12-15)
+### Fix #5: Category Distinction Bug + Context Loss Fix (2025-12-15)
 **Problem**:
 1. Bot confused cookies (עוגיות) with desserts (קינוחים)
 2. Bot lost category context after 2-3 exchanges, reverting to wrong categories
@@ -116,7 +129,7 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #5: Context-Aware Dish Tracking (2025-12-14)
+### Fix #6: Context-Aware Dish Tracking (2025-12-14)
 **Problem**: Bot tracked ALL queries as "shown dishes", even ingredient/detail queries. This caused:
 - User asks "מה הרכיבים של קציצות עוף?" → Dish added to shown list
 - User asks again "מה הרכיבים?" → Bot refuses, says "all dishes already shown"
@@ -133,7 +146,7 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #6: Dish Repetition (2025-12-13)
+### Fix #7: Dish Repetition (2025-12-13)
 **Problem**: Bot repeated same dishes when user asked "show me more"
 
 **Root Cause**: When all dishes filtered by `exclude_ids`, system returned empty list but didn't signal "all shown"
@@ -147,7 +160,7 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #7: Context Over-Application (2025-12-13)
+### Fix #8: Context Over-Application (2025-12-13)
 **Problem**: LLM stuck maintaining filters (e.g., Friday filter persisted forever)
 
 **Solution**: Deleted instruction from `docs/instructions.txt`:
@@ -157,7 +170,7 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #8: Category Context Preservation (2025-12-13)
+### Fix #9: Category Context Preservation (2025-12-13)
 **Problem**: Bot loses category context in follow-up queries. Example:
 - User: "איזה קינוחים יש?" → Bot shows desserts
 - User: "יש משהו חלבי?" → Bot searches ALL dairy items instead of dairy desserts
