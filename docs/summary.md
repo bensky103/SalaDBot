@@ -64,16 +64,20 @@ User  ChatService.process_user_message()
 
 ---
 
-### Fix #2: Multiple Detail Queries - Temperature Fix + Enhanced Instructions (2025-12-15)
+### Fix #2: Ingredient Hallucination + Multiple Detail Queries - Temperature Fix + Enhanced Instructions + Verbatim Copy (2025-12-15)
 **Problem**: 
-1. When user asks "מה הרכיבים שלהם?" for 5 dishes, LLM mixes/jumbles ingredients
-2. When user asks "מה האלרגנים?" after showing dishes, bot repeats previous response or returns wrong data
+1. LLM hallucinated/modified ingredients even at temp=0.0: "פירורי לחם" → "פירות יבשים", omitting "שום", changing "שמנת חלבית" → "שמנת חלבי"
+2. When user asks "מה הרכיבים שלהם?" for 5 dishes, LLM mixes/jumbles ingredients
+3. When user asks "מה האלרגנים?" after showing dishes, bot repeats previous response or returns wrong data
 
 **Root Cause**: 
-1. LLM makes 5 parallel tool calls, receives 5 separate responses
-2. With `temperature=0.7`, LLM "gets creative" when synthesizing, mixing data between dishes
+1. Single-dish format provided ingredients as `🥘 רכיבים:בטטה, ביצים, פירורי לחם...` → LLM "rephrased" instead of copying verbatim
+2. LLM makes 5 parallel tool calls, receives 5 separate responses
+3. With `temperature=0.7`, LLM "gets creative" when synthesizing, mixing data between dishes
 
 **Solution**: 
+- `app/ai_core.py` (L397-402, L470-477): Extract ingredients after "רכיבים:" and add explicit "COPY EXACTLY" warning to prevent hallucination
+- `docs/instructions.txt` (L203-214): Added "CRITICAL - COPY VERBATIM" instructions with explicit examples of correct vs wrong behavior
 - `app/config.py` (L103): Changed `OPENAI_TEMPERATURE: 0.7 → 0.0` for deterministic responses
 - `docs/instructions.txt`: Enhanced with explicit multi-dish formatting instructions:
   - Added step-by-step verification process for mapping tool responses to dishes
@@ -85,7 +89,7 @@ User  ChatService.process_user_message()
 - Pre-formatting with hard-coded keyword detection (`_is_multiple_ingredient_query`, `_format_multiple_ingredients_response`)
 - Limitation: Only detected specific Hebrew keywords, couldn't handle alternative phrasings
 
-**Result**: ✅ Ingredients/allergens never mixed with temp=0.0. ✅ More flexible - handles various phrasings. ✅ All responses more consistent. ✅ LLM-based synthesis with clear instructions.
+**Result**: ✅ No ingredient hallucination - LLM copies verbatim. ✅ Ingredients/allergens never mixed with temp=0.0. ✅ More flexible - handles various phrasings. ✅ All responses more consistent. ✅ LLM-based synthesis with clear instructions.
 
 ---
 

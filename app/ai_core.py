@@ -393,9 +393,16 @@ def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = Fals
         if item.get('package_type'):
             response_parts.append(f"📦 אריזה: {item['package_type']}")
         
-        # Ingredients (CRITICAL)
+        # Ingredients (CRITICAL - Extract and format for verbatim copying)
         if item.get('description'):
-            response_parts.append(f"\n🥘 {item['description']}")
+            # Extract ingredients after "רכיבים:" to prevent LLM hallucination
+            desc = item['description']
+            if 'רכיבים:' in desc:
+                ingredients_part = desc.split('רכיבים:')[1].strip()
+                response_parts.append(f"\n🥘 רכיבים: {ingredients_part}")
+                response_parts.append("⚠️ COPY INGREDIENTS EXACTLY AS WRITTEN ABOVE - DO NOT rephrase, modify, or change any words")
+            else:
+                response_parts.append(f"\n🥘 {desc}")
         
         # Allergens (CRITICAL)
         if item.get('allergens_contains'):
@@ -460,8 +467,14 @@ def format_menu_items_for_ai(items: List[Dict[str, Any]], all_shown: bool = Fals
                 parts.append(f"📅{item['availability_days']}")
 
             # Description (ingredients) - CRITICAL for ingredient queries
+            # Extract ingredients separately to prevent LLM hallucination
             if item.get('description'):
-                parts.append(item['description'])
+                desc = item['description']
+                if 'רכיבים:' in desc:
+                    ingredients_part = desc.split('רכיבים:')[1].strip()
+                    parts.append(f"רכיבים: {ingredients_part}")
+                else:
+                    parts.append(desc)
 
         # Combine all parts with separator
         dish_line = ' | '.join(parts)
