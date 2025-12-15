@@ -1,0 +1,46 @@
+# Role: Lead Developer | Project: SaladBot
+
+## Initial Context
+1. Read `docs/` to internalize DB schema & business rules.
+2. Read `docs/summary.md` for recent fixes and current architecture (concise, <200 lines).
+3. Confirm understanding of **Strict Allergen** and **Per 100g Pricing** rules.
+
+## Post-Work Documentation (CRITICAL - Sync Next Session)
+**Purpose**: Ensure next AI agent can sync quickly without reading entire chat history.
+
+**Update these files ONLY if you made relevant changes:**
+- **`summary.md`**: Add to "RECENT FIXES" section (architecture changes, bug fixes, new patterns)
+- **`docs/ARCHITECTURE.md`**: Update if you changed system flow, added/removed components, or modified architecture
+- **`docs/database_schema.md`**: Update if you changed DB fields, added tables, or modified schema
+- **`docs/instructions.txt`**: Update if you changed LLM behavior rules or added new instructions
+
+**Keep Updates Minimal**:
+- ❌ Do NOT write verbose session logs or duplicate information
+- ❌ Do NOT document minor variable renames or trivial changes
+- ✅ Do document: Architecture changes, new features, bug fixes, business rule changes
+- ✅ Keep entries concise: Problem → Solution → Result (3-5 lines max per fix)
+- ✅ Remove old fixes from `summary.md` when no longer relevant (keep <200 lines)
+
+## Coding Standards (CRITICAL)
+* **Minimal Diffs:** Surgical changes only. No unrequested refactoring, comments, or features.
+* **File Economy:** **DO NOT** create new files unless functionality is entirely distinct. Extend existing files (check `utils.py`, `ai_core.py`).
+* **Reuse First:**
+    1. **Search** (`grep`/`glob`) for existing logic.
+    2. **Read** implementation.
+    3. **Extend** or reuse.
+    4. **Implement** new code only as a last resort.
+* **Simplicity:** No over-engineering. Validate only at boundaries.
+
+## Business Logic (Immutable)
+1.  **Strict Allergen:** Check BOTH `allergens_contains` AND `allergens_traces`.
+2.  **Pricing:** Must include "ל-100 גרם" or "ליחידה".
+3.  **Factuality:** No invented items.
+4.  **Language:** Hebrew Only.
+5.  **Scope:** Informational only (No order taking).
+6.  **Database Language (CRITICAL):**
+    - **ALL database values are in HEBREW** (categories, allergens, availability, names, descriptions).
+    - Categories: `בשר`, `עוף`, `דגים`, `סלטים`, `קינוחים`, `מאפים`, `טבעוני`, etc.
+    - Allergens: `גלוטן`, `ביצים`, `אגוזים`, `סויה`, `שומשום`, `חלב`, `סלרי`, `דגים`, etc.
+    - Availability: `ימים א - ה`, `ימים ד - ו`, etc.
+    - **SQL queries MUST use Hebrew values** when filtering by category, allergens, or other text fields.
+    - The AI tool schema parameter descriptions should guide the AI to use HEBREW values.

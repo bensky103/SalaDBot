@@ -1,0 +1,57 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+# docs/ - REMOVED: instructions.txt is needed for bot behavior
+docs/*.md
+docs/ARCHITECTURE.md
+docs/database_schema.md
+docs/project_brief.md
+docs/SECURITY.md
+docs/summary.md
+docs/system_prompt_spec.md
+# Keep docs/instructions.txt - it's CRITICAL for bot behavior!
+
+# Tests
+tests/
+scripts/test_*.py
+
+# Railway config files (not needed with Docker)
+railpack-plan.json
+Procfile
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+temp/
