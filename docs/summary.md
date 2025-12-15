@@ -37,7 +37,7 @@ User  ChatService.process_user_message()
 
 ## RECENT FIXES
 
-### Fix #1: Multiple Detail Queries (Ingredients/Allergens) Mixing Bug + Temperature Fix (2025-12-15)
+### Fix #1: Multiple Detail Queries - Temperature Fix + Enhanced Instructions (2025-12-15)
 **Problem**: 
 1. When user asks "מה הרכיבים שלהם?" for 5 dishes, LLM mixes/jumbles ingredients
 2. When user asks "מה האלרגנים?" after showing dishes, bot repeats previous response or returns wrong data
@@ -45,15 +45,20 @@ User  ChatService.process_user_message()
 **Root Cause**: 
 1. LLM makes 5 parallel tool calls, receives 5 separate responses
 2. With `temperature=0.7`, LLM "gets creative" when synthesizing, mixing data between dishes
-3. No structured parsing - relies on LLM to correctly map data to dishes
 
 **Solution**: 
 - `app/config.py` (L103): Changed `OPENAI_TEMPERATURE: 0.7 → 0.0` for deterministic responses
-- `app/chat_service.py` (L365-450): Added pre-formatting for multiple detail queries:
-  - `_is_multiple_ingredient_query()`: Detects when user asks for ingredients/allergens of multiple dishes
-  - `_format_multiple_ingredients_response()`: Parses tool responses in Python, extracts correct data (ingredients OR allergens), formats response without LLM
+- `docs/instructions.txt`: Enhanced with explicit multi-dish formatting instructions:
+  - Added step-by-step verification process for mapping tool responses to dishes
+  - Explicit "DO NOT mix data between dishes" rules
+  - Detailed formatting examples for both ingredients and allergens
+  - Clear separation between "מכילה" and "עקבות" for allergen queries
 
-**Result**: ✅ Ingredients/allergens never mixed. ✅ No second API call for detail queries (faster + cheaper). ✅ All responses more consistent with temp=0. ✅ Correctly differentiates between ingredient and allergen queries.
+**Previous Approach (Removed 2025-12-15)**:
+- Pre-formatting with hard-coded keyword detection (`_is_multiple_ingredient_query`, `_format_multiple_ingredients_response`)
+- Limitation: Only detected specific Hebrew keywords, couldn't handle alternative phrasings
+
+**Result**: ✅ Ingredients/allergens never mixed with temp=0.0. ✅ More flexible - handles various phrasings. ✅ All responses more consistent. ✅ LLM-based synthesis with clear instructions.
 
 ---
 
